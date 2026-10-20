@@ -21,7 +21,9 @@ const schema = z
   })
   .superRefine((cfg, ctx) => {
     if (cfg.ENV === "staging" || cfg.ENV === "production") {
-      for (const key of ["JWT_PRIVATE_KEY", "JWT_PUBLIC_KEYS", "TOTP_ENCRYPTION_KEY", "LLM_API_KEY"] as const) {
+      // LLM_API_KEY is only enforced in production until T13 wires up summaries.
+      const required = ["JWT_PRIVATE_KEY", "JWT_PUBLIC_KEYS", "TOTP_ENCRYPTION_KEY"] as const;
+      for (const key of cfg.ENV === "production" ? [...required, "LLM_API_KEY" as const] : required) {
         if (!cfg[key]) ctx.addIssue({ code: "custom", path: [key], message: `${key} is required in ${cfg.ENV}` });
       }
     }
