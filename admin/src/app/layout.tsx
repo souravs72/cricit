@@ -23,8 +23,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${display.variable} ${body.variable} antialiased`}>
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
+      <body className="antialiased">
         <QueryProvider>{children}</QueryProvider>
         <Toaster position="bottom-right" />
       </body>
