@@ -1,4 +1,4 @@
-# T04 — Core: settings, errors, logging, health
+# T04 — Core: readiness, observability, limits
 
 **Week:** W1 · **Estimate:** ~3 h · **Depends on:** T02
 
@@ -8,17 +8,17 @@ Production-safe defaults everywhere before features land.
 
 ## Files
 
-- `backend/app/core/*`
-- `backend/app/main.py`
-- `backend/tests/*`
+- `api/src/core/*`
+- `api/src/app.ts`
+- `api/test/*`
 
 ## Acceptance
 
-- [ ] /ready returns 503 with a JSON error when Postgres or Redis is down (test with a bad URL)
-- [ ] Rate-limit helper in `app/core/ratelimit.py` (Redis sliding window) with unit tests
-- [ ] Request body size capped (1 MB) at the app level
-- [ ] Sentry captures an unhandled exception with request_id tag (manual check, screenshot in PR)
-- [ ] Log redaction test: phone numbers and tokens never appear in log output
+- [ ] `/ready` returns 503 with our error JSON when D1 or KV fails (test with a broken binding stub)
+- [ ] Workers Logs + Traces enabled (observability already on); one structured log line per request with request_id, status, duration
+- [ ] Sentry for Workers (`@sentry/cloudflare`) wraps the handler in staging/production; a thrown error shows up with request_id (screenshot in PR)
+- [ ] Test: phone numbers and tokens never appear in logged error output
+- [ ] Test: rate-limited request returns 429 with our error shape (mock the RL binding)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

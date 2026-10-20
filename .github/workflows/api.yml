@@ -1,0 +1,33 @@
+name: api
+on:
+  push: { branches: [main] }
+  pull_request:
+    paths: ["api/**", ".github/workflows/api.yml"]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: api } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          {
+            node-version: 22,
+            cache: npm,
+            cache-dependency-path: api/package-lock.json,
+          }
+      - run: npm ci
+      - name: Types are up to date with wrangler.jsonc
+        run: npx wrangler types && git diff --exit-code worker-configuration.d.ts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - name: Tests (inside workerd, with D1 migrations applied)
+        run: npm test
+      - name: Migrations match the schema
+        run: npx drizzle-kit generate --name ci_check && git diff --exit-code migrations
+      - name: Bundle builds
+        run: npx wrangler deploy --dry-run --outdir dist
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high

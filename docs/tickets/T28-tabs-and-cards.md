@@ -14,7 +14,7 @@ Tabs, share, open source, deep links.
 ## Acceptance
 
 - [ ] Domestic/International/Nxtspot tabs; source opens in in-app browser
-- [ ] Share uses share_url; cricit.app/p/{id} opens that card (Android App Links)
+- [ ] Share uses share_url; cricit.app/p/{id} opens that card (Android App Links; assetlinks.json served by a Worker)
 - [ ] Team edge strip shows for tagged cards
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

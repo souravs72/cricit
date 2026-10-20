@@ -14,7 +14,7 @@ The app builds for dev/staging/prod.
 ## Acceptance
 
 - [ ] `flutter create .` run; Android min SDK 23; flavors dev/staging/prod with separate app IDs
-- [ ] API base URL and flavor via --dart-define; Firebase config per flavor (files git-ignored)
+- [ ] API base URL and flavor via --dart-define (dev → wrangler dev on :8787)
 - [ ] Mobile CI green; release signing documented (keystore not in git)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

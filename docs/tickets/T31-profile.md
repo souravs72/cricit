@@ -9,12 +9,12 @@ Everything on the profile tab.
 ## Files
 
 - `mobile/lib/features/profile/*`
-- `backend /v1/me*`
+- `api /v1/me*`
 
 ## Acceptance
 
-- [ ] Bookmarks sync with the backend; settings: language, notifications, night mode, text size, autoplay
-- [ ] Account delete: confirmation, revokes all sessions, data purged after 30 days (Play policy)
+- [ ] Bookmarks sync with the API; settings: language, notifications, night mode, text size, autoplay
+- [ ] Account delete: confirmation, revokes all sessions, purge after 30 days (Play policy)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

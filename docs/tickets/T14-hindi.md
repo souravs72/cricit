@@ -4,16 +4,16 @@
 
 ## Goal
 
-Hindi text produced in the same LLM call and validated.
+Hindi text from the same LLM call, validated.
 
 ## Files
 
-- `backend/app/ai/*`
+- `api/src/ai/*`
 
 ## Acceptance
 
-- [ ] `looks_hindi` passes for headline_hi and summary_hi, else Hindi fields left empty (English shown)
-- [ ] Feed with `lang=hi` falls back to English per card when Hindi is missing (test)
+- [ ] `looksHindi` passes for headline_hi and summary_hi, else Hindi fields left empty
+- [ ] Feed `lang=hi` falls back to English per card when Hindi is missing (test exists — keep it green)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

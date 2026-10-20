@@ -8,15 +8,15 @@ Shorts from configured channels.
 
 ## Files
 
-- `backend/app/ingestion/youtube.py`
-- `backend/app/api/v1/routes.py`
+- `api/src/ingestion/youtube.ts`
+- `api/src/routes/v1.ts`
 
 ## Acceptance
 
-- [ ] Uses playlistItems.list on uploads playlists (1 unit) + videos.list in batches of 50
-- [ ] Keeps videos ≤ 60 s; stores id, title, channel, thumbnail only
-- [ ] Daily quota usage tracked in Redis; stops at 80% of 10,000 units
-- [ ] `/v1/videos` cursor-paginated, CDN cacheable
+- [ ] playlistItems.list on uploads playlists (1 unit) + videos.list batches of 50
+- [ ] Keep ≤ 60 s videos; store id, title, channel, thumbnail only
+- [ ] Daily quota tracked in a Durable Object or D1 counter (not KV); stop at 80% of 10,000 units
+- [ ] `/v1/videos` cursor-paginated and cacheable
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

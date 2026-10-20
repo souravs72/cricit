@@ -14,7 +14,6 @@ Readers can sign in with their phone or skip.
 
 - [ ] Firebase phone auth + App Check; exchange with `/v1/auth/firebase`; tokens in TokenStore
 - [ ] Skip allowed; bookmark/submit prompt sign-in later
-- [ ] Profile setup (name, language) skippable
 - [ ] Error states for wrong OTP, too many attempts, offline
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

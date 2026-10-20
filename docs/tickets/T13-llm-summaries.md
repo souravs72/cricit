@@ -1,24 +1,23 @@
-# T13 — LLM client, summarize_v1, validators, cost tracking
+# T13 — Text extraction, LLM via AI Gateway, validation, cost
 
 **Week:** W4 · **Estimate:** ~6 h · **Depends on:** T12
 
 ## Goal
 
-Turn extracted article text into a validated card.
+Turn an article into a validated card.
 
 ## Files
 
-- `backend/app/ai/*`
-- `backend/app/services/ingest.py`
+- `api/src/ai/*`
+- `api/src/workflows/process-article.ts`
 
 ## Acceptance
 
-- [ ] Provider adapter implements `LLMClient.complete_json` with JSON-schema output and timeouts
-- [ ] trafilatura extracts text in memory only; full text never stored
-- [ ] `validate_summary` + relevance ≥ 0.5 required to auto-publish (trusted sources); otherwise `review`
-- [ ] ai_jobs row per call with tokens and cost; daily cost visible via a service method
-- [ ] Retries: 2 on timeout/5xx; invalid JSON → one repair attempt → review
-- [ ] Tests with a fake LLM client
+- [ ] Extraction with HTMLRewriter (article/main/p text) in memory only; full text never stored
+- [ ] LLM adapter calls the provider through Cloudflare AI Gateway (logs, caching, retries, fallback model)
+- [ ] `validateSummary` + relevance ≥ 0.5 required to auto-publish (trusted sources); else status `review`
+- [ ] ai_jobs row per call with tokens and cost; invalid JSON → one repair attempt → review
+- [ ] Tests with a fake LLMClient
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

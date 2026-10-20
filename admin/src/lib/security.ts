@@ -1,4 +1,4 @@
-/** Pure helpers shared by middleware and route handlers (no Node-only imports). */
+/** Pure helpers for route handlers and the dashboard (no Node-only imports). */
 
 export const ACCESS_COOKIE = "__Host-cricit_at";
 export const REFRESH_COOKIE = "__Host-cricit_rt";

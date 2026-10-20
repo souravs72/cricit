@@ -13,8 +13,8 @@ Close every item on the hardening checklist.
 ## Acceptance
 
 - [ ] Hardening checklist in the plan: every item ticked with evidence
-- [ ] pip-audit and npm audit (prod) clean or accepted with reason
-- [ ] OWASP ZAP baseline on the admin: no high findings
+- [ ] `npm audit --omit=dev` clean (api + admin) or accepted with reason
+- [ ] Cloudflare WAF managed rules on for the custom domains; OWASP ZAP baseline on the admin: no high findings
 - [ ] In Claude Code, run gstack /cso and fix findings
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

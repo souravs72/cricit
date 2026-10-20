@@ -1,24 +1,24 @@
-# T09 — Sources admin API
+# T09 — Sources admin API + OpenAPI
 
 **Week:** W3 · **Estimate:** ~4 h · **Depends on:** T07
 
 ## Goal
 
-CRUD for sources plus a dry-run fetch.
+CRUD for sources plus a dry-run fetch; publish an OpenAPI document for the admin's types.
 
 ## Files
 
-- `backend/app/api/admin/routes.py`
-- `backend/app/services/sources.py`
-- `backend/app/repositories/sources.py`
-- `backend/app/schemas/sources.py`
+- `api/src/routes/admin.ts`
+- `api/src/services/sources.ts`
+- `api/src/repositories/sources.ts`
 
 ## Acceptance
 
-- [ ] List/create/update/pause sources; `sources:manage` required; audited
-- [ ] `POST /admin/v1/sources/{id}/test` fetches with the adapter and returns the first 10 items without saving
-- [ ] adapter_config validated per adapter type (Pydantic discriminated union)
-- [ ] URLs restricted to http(s) public hosts (no localhost/private IPs — SSRF test)
+- [ ] List/create/update/pause; `sources:manage` required; audited
+- [ ] `POST /admin/v1/sources/{id}/test` runs the adapter and returns the first 10 items without saving
+- [ ] adapter_config validated per adapter type (zod discriminated union)
+- [ ] URLs restricted to public https hosts (no IPs, no localhost) — SSRF test
+- [ ] `/openapi.json` served (hono-openapi or @hono/zod-openapi); admin `npm run gen:api` works
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

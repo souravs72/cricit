@@ -9,12 +9,12 @@ Editors create grassroots articles from notes or photos.
 ## Files
 
 - `admin/src/features/studio/*`
-- `backend nxtspot services`
+- `api nxtspot services`
 
 ## Acceptance
 
-- [ ] Raw notes (+ optional photos) → AI draft of article, card and headline
-- [ ] Phone-card preview in the dashboard before publishing
+- [ ] Raw notes (+ photos to R2 via presigned upload) → AI draft of article, card and headline
+- [ ] Phone-card preview before publishing
 - [ ] Nothing AI-generated about grassroots players publishes without editor approval
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

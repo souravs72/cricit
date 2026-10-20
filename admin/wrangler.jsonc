@@ -1,0 +1,22 @@
+// CRICIT Newsroom (Next.js via OpenNext) on Workers. Top level = staging; `--env production` = production.
+// The admin reaches the API through the API service binding: Worker-to-Worker, never the public internet.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cricit-admin-staging",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "upload_source_maps": true,
+  "observability": { "enabled": true },
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "API", "service": "cricit-api-staging" }],
+  "vars": { "API_BASE_URL": "https://cricit-api-staging.invalid" },
+  "env": {
+    "production": {
+      "name": "cricit-admin",
+      "routes": [{ "pattern": "admin.cricit.app", "custom_domain": true }],
+      "services": [{ "binding": "API", "service": "cricit-api" }],
+      "vars": { "API_BASE_URL": "https://api.cricit.app" },
+    },
+  },
+}

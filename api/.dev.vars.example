@@ -1,0 +1,10 @@
+# Copy to .dev.vars for `wrangler dev` and tests. Never commit .dev.vars.
+# `npm run keys` prints fresh values for the JWT and TOTP lines.
+# ENV=local relaxes the secret checks that staging/production enforce.
+ENV="local"
+JWT_PRIVATE_KEY=""
+JWT_PUBLIC_KEYS=""
+# 32-byte base64 key that encrypts admin TOTP secrets at rest (`npm run keys` prints one).
+TOTP_ENCRYPTION_KEY=""
+LLM_API_KEY=""
+YOUTUBE_API_KEY=""

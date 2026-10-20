@@ -8,13 +8,13 @@ Direct-sold ads managed in the newsroom.
 
 ## Files
 
-- `backend ads service`
+- `api ads service`
 - `admin/src/features/ads/*`
 
 ## Acceptance
 
-- [ ] Campaign CRUD (owner only), creative upload via signed R2 URL, schedule, frequency, daily cap
-- [ ] Feed inserts sponsored cards and full-page slots per rules; caps enforced via Redis counters
+- [ ] Campaign CRUD (owner only), creative upload to R2, schedule, frequency, daily cap
+- [ ] Feed inserts sponsored cards and full-page slots; caps enforced with a Durable Object counter (exact, unlike KV)
 - [ ] Video tab has no ads (YouTube policy)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

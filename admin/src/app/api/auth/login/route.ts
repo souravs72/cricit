@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ApiError, apiFetch } from "@/lib/api/server";
+import { rejectCrossSite } from "@/lib/guard";
 
 const body = z.object({ email: z.string().email(), password: z.string().min(12) });
 
 /** First login step: password check. Returns a TOTP challenge, never tokens. */
 export async function POST(req: Request) {
+  const blocked = rejectCrossSite(req);
+  if (blocked) return blocked;
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(

@@ -1,0 +1,24 @@
+---
+description: Cloudflare Workers API rules (Hono, D1, KV, Queues, Workflows)
+globs: api/**
+alwaysApply: false
+---
+
+- TypeScript strict; `npm run check` must pass (eslint, tsc, prettier, vitest in workerd).
+- Layers: `routes/` → `services/` → `repositories/` (Drizzle; the only place with SQL) → `db/schema.ts`.
+- Every route: one auth middleware from `src/core/auth.ts`, zod input via `zValidator(..., validationHook)`,
+  rate limit public/auth routes with `rateLimit("RL_...")`. New public routes need a comment saying why.
+- Throw `AppError` subclasses; never return raw errors. Errors are never cached.
+- Workers runtime: no Node-only packages or native modules; no runtime WebAssembly compilation; Web Crypto
+  for crypto; `fetch` always with `AbortSignal.timeout`; HTMLRewriter for HTML parsing.
+- D1: ≤100 bound parameters per statement (use `insertMany`), batch related writes with `db.batch` (atomic),
+  epoch-ms timestamps, JSON in text columns.
+- KV is eventually consistent (~60 s): use it for caches only, never for counters or locks. Use Durable
+  Objects or D1 for anything that must be exact.
+- Background work: Cron → Queue (retries + dead-letter queue) → Workflow (`step.do` with retries). Steps must be
+  idempotent; use natural keys as Workflow instance ids.
+- Schema change: edit `src/db/schema.ts` → `npx drizzle-kit generate --name x` → review SQL → `npm run
+  db:migrate:local`. Never edit an applied migration.
+- After changing `wrangler.jsonc`, run `npm run types`. Secrets go in `src/secrets.d.ts` + `src/core/config.ts`.
+- Tests use `env` from `cloudflare:workers` and `app.request(path, init, env)`; integration tests hit the real
+  local D1/KV. Test the unhappy paths (wrong role, expired token, bad cursor, rate limit).

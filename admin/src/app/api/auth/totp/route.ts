@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ApiError, apiFetch } from "@/lib/api/server";
+import { rejectCrossSite } from "@/lib/guard";
 import { setSession } from "@/lib/session";
 
 const body = z.object({ challenge_id: z.string().min(1), code: z.string().min(6).max(13) });
 
 /** Second login step: exchange the TOTP code for tokens and store them in HttpOnly cookies. */
 export async function POST(req: Request) {
+  const blocked = rejectCrossSite(req);
+  if (blocked) return blocked;
   const parsed = body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(

@@ -1,0 +1,121 @@
+// CRICIT API Worker. Top level = staging; `--env production` = production.
+// Secrets (never in this file): set with `wrangler secret put NAME [--env production]`,
+// locally in .dev.vars (see .dev.vars.example).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cricit-api-staging",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "upload_source_maps": true,
+  "observability": { "enabled": true },
+  // Run near the D1 primary (APAC) because most requests that miss the cache hit D1.
+  "placement": { "mode": "smart" },
+
+  "vars": {
+    "ENV": "staging",
+    "JWT_ISSUER": "cricit",
+    "JWT_KEY_ID": "k1",
+    "ADMIN_ORIGIN": "https://admin-staging.cricit.app",
+    "SHARE_BASE_URL": "https://staging.cricit.app",
+    "FIREBASE_PROJECT_ID": "cricit-staging",
+    "FEED_PAGE_SIZE": "20",
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cricit-staging",
+      "database_id": "89f4cdb2-759f-4975-9476-799125cef846",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "kv_namespaces": [{ "binding": "CACHE", "id": "d4151d5a665f48c9b50e5be9137aea52" }],
+  // R2 must be enabled once in the Cloudflare dashboard, then: wrangler r2 bucket create cricit-media-staging
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "cricit-media-staging" }],
+
+  "queues": {
+    "producers": [{ "binding": "INGEST_QUEUE", "queue": "cricit-ingest-staging" }],
+    "consumers": [
+      {
+        "queue": "cricit-ingest-staging",
+        "max_batch_size": 5,
+        "max_batch_timeout": 10,
+        "max_retries": 3,
+        "dead_letter_queue": "cricit-ingest-dlq-staging",
+      },
+    ],
+  },
+
+  "workflows": [
+    {
+      "name": "cricit-process-article-staging",
+      "binding": "PROCESS_ARTICLE",
+      "class_name": "ProcessArticle",
+      "default_retention": { "success_retention": "3 days", "error_retention": "14 days" },
+    },
+  ],
+
+  "ratelimits": [
+    { "name": "RL_PUBLIC", "namespace_id": "2001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_SEARCH", "namespace_id": "2002", "simple": { "limit": 30, "period": 60 } },
+    { "name": "RL_AUTH", "namespace_id": "2003", "simple": { "limit": 10, "period": 60 } },
+    { "name": "RL_ADMIN", "namespace_id": "2004", "simple": { "limit": 300, "period": 60 } },
+  ],
+
+  // Every 2 min: enqueue due sources. 21:30 UTC (03:00 IST): housekeeping.
+  "triggers": { "crons": ["*/2 * * * *", "30 21 * * *"] },
+
+  "env": {
+    "production": {
+      "name": "cricit-api",
+      "routes": [{ "pattern": "api.cricit.app", "custom_domain": true }],
+      "vars": {
+        "ENV": "production",
+        "JWT_ISSUER": "cricit",
+        "JWT_KEY_ID": "k1",
+        "ADMIN_ORIGIN": "https://admin.cricit.app",
+        "SHARE_BASE_URL": "https://cricit.app",
+        "FIREBASE_PROJECT_ID": "cricit-prod",
+        "FEED_PAGE_SIZE": "20",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "cricit-prod",
+          "database_id": "456f067a-a0eb-43cd-b290-8a5b61ab46b8",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "kv_namespaces": [{ "binding": "CACHE", "id": "239c989083b64421b49d17908c464fe0" }],
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "cricit-media" }],
+      "queues": {
+        "producers": [{ "binding": "INGEST_QUEUE", "queue": "cricit-ingest" }],
+        "consumers": [
+          {
+            "queue": "cricit-ingest",
+            "max_batch_size": 5,
+            "max_batch_timeout": 10,
+            "max_retries": 3,
+            "dead_letter_queue": "cricit-ingest-dlq",
+          },
+        ],
+      },
+      "workflows": [
+        {
+          "name": "cricit-process-article",
+          "binding": "PROCESS_ARTICLE",
+          "class_name": "ProcessArticle",
+          "default_retention": { "success_retention": "3 days", "error_retention": "14 days" },
+        },
+      ],
+      "ratelimits": [
+        { "name": "RL_PUBLIC", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+        { "name": "RL_SEARCH", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+        { "name": "RL_AUTH", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } },
+        { "name": "RL_ADMIN", "namespace_id": "1004", "simple": { "limit": 300, "period": 60 } },
+      ],
+      "triggers": { "crons": ["*/2 * * * *", "30 21 * * *"] },
+    },
+  },
+}

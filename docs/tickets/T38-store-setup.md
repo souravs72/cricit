@@ -14,7 +14,7 @@ Ready for review.
 ## Acceptance
 
 - [ ] Privacy policy and terms published; data-safety form matches what the app collects
-- [ ] Store listing (screenshots, description in English and Hindi); AdMob app approved
+- [ ] Store listing (English and Hindi); AdMob app approved
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

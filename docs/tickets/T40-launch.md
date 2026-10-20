@@ -12,8 +12,8 @@ Launch and hand over.
 
 ## Acceptance
 
-- [ ] Production release live; monitoring dashboards and alerts on
-- [ ] Runbook: deploy, rollback, rotate keys, restore backup, add a source, add an admin
+- [ ] Production release live; Workers Logs, alerts and dashboards on
+- [ ] Runbook: deploy, rollback (`wrangler rollback`), rotate keys, D1 restore, add a source, add an admin
 - [ ] Handover call with the client; maintenance retainer agreed
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

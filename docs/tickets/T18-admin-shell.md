@@ -14,10 +14,10 @@ Admins can sign in and move around the newsroom.
 
 ## Acceptance
 
-- [ ] Login → TOTP → overview works against the real backend
+- [ ] Login → TOTP → overview works against the real API (local and staging)
 - [ ] Expired access token refreshed silently once (single-flight) in `apiFetch`; failure → /login
-- [ ] Logout revokes the backend session then clears cookies
-- [ ] Nav shows only permitted items (vitest) ; Playwright smoke: login → overview
+- [ ] Logout revokes the API session then clears cookies
+- [ ] Playwright smoke: login → overview, against `npm run preview` (the Worker build)
 - [ ] Visual check against DESIGN.md (screenshot in PR)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

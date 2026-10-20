@@ -9,13 +9,13 @@ Editors approve, edit and publish cards.
 ## Files
 
 - `admin/src/features/posts/*`
-- `backend posts admin API`
+- `api posts admin routes`
 
 ## Acceptance
 
-- [ ] Review queue shows AI card beside the original link; approve / edit / reject with keyboard shortcuts
+- [ ] Review queue shows the AI card beside the original link; approve / edit / reject with keyboard shortcuts
 - [ ] Possible duplicates show the existing post side by side
-- [ ] Posts table: server-side filters (status, category, source), cursor pagination, pin, unpublish, regenerate
+- [ ] Posts table: server-side filters, cursor pagination, pin, unpublish, regenerate
 - [ ] All actions audited; optimistic UI rolls back on error
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

@@ -8,20 +8,20 @@ Implement `/v1/auth/firebase`, `/v1/auth/refresh`, `/v1/auth/logout` exactly as 
 
 ## Files
 
-- `backend/app/services/auth.py (new)`
-- `backend/app/repositories/sessions.py (new)`
-- `backend/app/api/v1/routes.py`
-- `backend/app/core/auth.py`
+- `api/src/services/auth.ts (new)`
+- `api/src/repositories/sessions.ts (new)`
+- `api/src/routes/v1.ts`
+- `api/src/core/auth.ts`
 
 ## Acceptance
 
-- [ ] Firebase ID token verified with firebase-admin: signature, aud, iss, auth_time < 5 min old (mock the verifier in tests)
+- [ ] `verifyFirebaseIdToken` (already in core/firebase.ts) is used; tests sign tokens with a local key
 - [ ] User upserted by firebase_uid; phone stored; returns access (15 min) + refresh token
-- [ ] Refresh rotates: old token stops working, new pair returned
+- [ ] Refresh rotates: old token stops working, new pair returned (D1 `sessions`, write + revoke in one `db.batch`)
 - [ ] Reusing an already-rotated refresh token revokes the whole family; both old and new refresh tokens then fail (test)
-- [ ] Logout revokes the session; its access token is rejected within 60 s (Redis revocation list keyed by sid with TTL = token lifetime)
-- [ ] Sliding 30-day and absolute 90-day expiry enforced (test with frozen time)
-- [ ] Rate limit: 10 exchanges/hour per device_id
+- [ ] Logout revokes the session; auth middleware rejects its access token via a KV revocation entry keyed by sid (TTL = token lifetime)
+- [ ] Sliding 30-day and absolute 90-day expiry enforced (test with injected time)
+- [ ] Rate limit RL_AUTH applies (10/min per IP+device)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

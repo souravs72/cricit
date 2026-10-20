@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+// Lets `next dev` read Cloudflare bindings (wrangler.jsonc) through getCloudflareContext().
+initOpenNextCloudflareForDev();
 
 const isDev = process.env.NODE_ENV !== "production";
 

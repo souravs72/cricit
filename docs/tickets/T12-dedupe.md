@@ -1,20 +1,20 @@
-# T12 — Two-pass dedupe wired into the pipeline
+# T12 — Two-pass dedupe in the Workflow
 
 **Week:** W4 · **Estimate:** ~3 h · **Depends on:** T10
 
 ## Goal
 
-Use `app/ingestion/dedupe.py` verdicts in the pipeline.
+Use `src/ingestion/dedupe.ts` verdicts inside ProcessArticle.
 
 ## Files
 
-- `backend/app/services/ingest.py (new)`
+- `api/src/workflows/process-article.ts`
+- `api/src/repositories/posts.ts`
 
 ## Acceptance
 
-- [ ] DUPLICATE → added to post_sources of the existing post
-- [ ] POSSIBLE → post created with status `review` and a `possible_duplicate_of` link shown in the review queue
-- [ ] DISTINCT → continues
+- [ ] Pass 1 before AI: duplicate → post_sources row; possible → continue but mark for review
+- [ ] Pass 2 after AI tags: possible → post status `review` with `possible_duplicate_of` set
 - [ ] Tests include the 'beat vs lose' and 'different numbers' cases (never auto-merged)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
@@ -25,4 +25,4 @@ Use `app/ingestion/dedupe.py` verdicts in the pipeline.
 
 ## Notes
 
-Thresholds were measured: title similarity alone cannot separate same-story rewrites from different stories, so the middle band always goes to an editor.
+Thresholds were measured: title similarity alone cannot separate rewrites from different stories, so the middle band always goes to an editor.

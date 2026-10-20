@@ -13,9 +13,9 @@ Confirm how each source in the brief can be read (RSS, sitemap or HTML), and whe
 ## Acceptance
 
 - [ ] Every source from the brief is listed: BCCI, ICC, IPL, Cricbuzz, ESPNcricinfo, Sportskeeda, Fox Sports, BBC, TOI, NDTV, plus each YouTube channel
-- [ ] Each row has: adapter (rss/sitemap/html/none), feed URL or listing URL, robots.txt result, terms-of-use note, decision (use/drop)
+- [ ] Each row: adapter (rss/sitemap/html/none), feed or listing URL, robots.txt result, terms-of-use note, decision (use/drop)
 - [ ] YouTube channels have their channel ID and uploads playlist ID
-- [ ] Client has replied 'approved' on the list (save the email/message reference)
+- [ ] Client has replied 'approved' on the list (save the message reference)
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

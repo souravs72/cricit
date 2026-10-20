@@ -12,7 +12,7 @@ Manage sources in the dashboard.
 
 ## Acceptance
 
-- [ ] List with health (last fetch, failures, paused), create/edit form per adapter type, test-fetch preview
+- [ ] List with health (last fetch, failures, paused), create/edit form per adapter, test-fetch preview
 - [ ] Owner/editor only; viewer sees nothing
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

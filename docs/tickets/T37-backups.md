@@ -8,13 +8,12 @@ Data can be recovered.
 
 ## Files
 
-- `infra/scripts/backup.sh`
-- `infra/scripts/restore.sh`
+- `api/src/workflows/backup.ts (new)`
 
 ## Acceptance
 
-- [ ] Nightly backup to R2 runs via cron; 14-day retention
-- [ ] Timed restore drill documented (target < 30 min)
+- [ ] D1 Time Travel restore rehearsed on staging (`wrangler d1 time-travel restore`), target < 15 min
+- [ ] Nightly scheduled Workflow exports D1 to R2 (14-day retention) for disaster recovery beyond 30 days
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

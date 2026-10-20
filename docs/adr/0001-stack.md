@@ -1,6 +1,6 @@
 # ADR 0001: Stack and shape
 
-**Status:** accepted · **Date:** 2026-10-20
+**Status:** partly superseded by ADR 0002 (hosting and backend) · **Date:** 2026-10-20
 
 ## Decision
 

@@ -11,12 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: admin/package-lock.json }
+        with:
+          {
+            node-version: 22,
+            cache: npm,
+            cache-dependency-path: admin/package-lock.json,
+          }
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run format:check
       - run: npm test
-      - run: npm run build
+      - name: Worker build (OpenNext)
+        run: npx opennextjs-cloudflare build
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high

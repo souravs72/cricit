@@ -1,21 +1,21 @@
-# T08 — Client approves the visual style sheet
+# T08 — Client approves the visual style sheet; scope freeze
 
 **Week:** W2 · **Estimate:** ~3 h · **Depends on:** -
 
 ## Goal
 
-Lock the look before UI work starts.
+Lock the look and scope before UI work starts.
 
 ## Files
 
 - `DESIGN.md`
-- `docs/style-sheet.html (new, one page)`
+- `docs/style-sheet.html (new)`
 
 ## Acceptance
 
-- [ ] One-page HTML showing tokens, a phone card, the admin login and a table row, in light and dark
-- [ ] Client approval recorded; any change is applied to DESIGN.md, globals.css and theme.dart together
-- [ ] Scope frozen: list of v1 features signed in docs/adr/0002-scope-freeze.md
+- [ ] One-page HTML: tokens, a phone card, admin login and a table row, light and dark
+- [ ] Client approval recorded; changes applied to DESIGN.md, admin globals.css and mobile theme.dart together
+- [ ] Scope frozen in docs/adr/0003-scope-freeze.md
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

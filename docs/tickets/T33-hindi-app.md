@@ -12,7 +12,7 @@ Full Hindi experience.
 
 ## Acceptance
 
-- [ ] ARB files for en/hi UI strings; one-tap toggle on card and in settings
+- [ ] ARB files for en/hi; one-tap toggle on card and in settings
 - [ ] Noto Sans Devanagari for Hindi; no clipping at 130% text scale
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 

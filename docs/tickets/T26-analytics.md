@@ -1,4 +1,4 @@
-# T26 — Analytics counters and overview
+# T26 — Analytics with Workers Analytics Engine
 
 **Week:** W7 · **Estimate:** ~4 h · **Depends on:** T16,T18
 
@@ -8,14 +8,14 @@ Real numbers on the overview scoreboard.
 
 ## Files
 
-- `backend events + rollup job`
+- `api analytics service`
 - `admin overview + analytics pages`
 
 ## Acceptance
 
-- [ ] `/v1/events` increments Redis counters (max 100 events/call, per-device rate limit)
-- [ ] Hourly rollup into post_stats_daily/ad_stats_daily is idempotent (test)
-- [ ] Overview scoreboard and analytics charts read the rollups; no raw event rows stored
+- [ ] `/v1/events` writes data points to Analytics Engine (max 100 events/call, rate-limited per device)
+- [ ] Daily Cron rolls up into post_stats_daily/ad_stats_daily via the Analytics Engine SQL API (idempotent upsert)
+- [ ] Overview scoreboard and analytics pages read the rollups; no raw event rows in D1
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor

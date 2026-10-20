@@ -4,7 +4,7 @@
 
 ## Goal
 
-Prove the single VPS holds.
+Prove the read path holds.
 
 ## Files
 
@@ -12,8 +12,8 @@ Prove the single VPS holds.
 
 ## Acceptance
 
-- [ ] 500 req/s on cache-miss feed path for 5 minutes with p95 < 300 ms and 0 errors on the staging VPS
-- [ ] Results and bottlenecks written to docs/adr/0003-load-test.md
+- [ ] 500 req/s on the KV-miss feed path for 5 minutes on staging: p95 < 300 ms, 0 errors
+- [ ] Results and D1 read metrics written to docs/adr/0004-load-test.md
 - [ ] `make check` (or the app's target) passes and the result is pasted in the PR
 
 ## How to start in Cursor
