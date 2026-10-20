@@ -1,0 +1,20 @@
+---
+description: Next.js admin (CRICIT Newsroom) rules
+globs: admin/**
+alwaysApply: false
+---
+
+- Next.js 16 App Router, TypeScript strict, React Server Components by default; add "use client" only
+  for interactivity.
+- Auth: tokens live only in `__Host-` HttpOnly cookies (`lib/session.ts`). Server code calls the backend
+  with `apiFetch` (`lib/api/server.ts`); client code calls `/api/proxy/*`. Never expose a token to the
+  browser, never use `NEXT_PUBLIC_` for secrets, import "server-only" in server modules.
+- `src/proxy.ts` is a convenience redirect, not security. The backend enforces every permission.
+- Data: server components fetch directly; interactive tables/forms use TanStack Query against the
+  proxy. Forms: React Hook Form + Zod; map backend `error.field` onto form fields.
+- Types: run `npm run gen:api` after backend schema changes; never hand-write API types.
+- UI: shadcn components from `src/components/ui`, themed by tokens in `globals.css` (from `DESIGN.md`).
+  Use `font-heading` (Barlow Condensed) for page titles and figures only.
+- Every list has loading, empty and error states. Empty states say what will appear and how.
+- Accessibility: labels on every input, visible focus, keyboard-reachable actions, no colour-only meaning.
+- `npm run check` must pass: lint, typecheck, vitest, build.

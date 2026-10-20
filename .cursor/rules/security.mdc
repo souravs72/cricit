@@ -1,0 +1,16 @@
+---
+description: Security rules that apply to every change
+alwaysApply: true
+---
+
+- Deny by default. Every backend route declares an auth dependency; admin routes use
+  `require(Permission.X)`. Ownership: `user_id` comes from the token, never the request.
+- Secrets only in environment variables. Never commit `.env`, keys, service-account JSON, or real data.
+- Never log tokens, refresh tokens, OTPs, TOTP codes, passwords or phone numbers.
+- Passwords: Argon2id via `app/core/security.py`. Refresh tokens: store only the SHA-256 hash; rotate
+  on every use; reuse revokes the session family.
+- Validate all input with Pydantic/Zod. Parameterised queries only (SQLAlchemy); no string-built SQL.
+- Rate-limit anything that costs money or can be brute-forced (OTP exchange, login, search, AI regenerate).
+- Outbound requests: timeouts always; never fetch URLs supplied by users without an allowlist.
+- Admin mutations check `Origin`; cookies are `__Host-`, HttpOnly, Secure, SameSite=Strict.
+- Changes to auth, sessions, permissions or migrations need a second review of the diff before merge.

@@ -1,0 +1,65 @@
+# Production on one VPS. Secrets come from /opt/cricit/.env (chmod 600), never from git.
+# Only Caddy publishes ports; everything else is on the private network.
+name: cricit
+
+x-backend: &backend
+  image: ghcr.io/${GHCR_OWNER}/cricit-backend:${RELEASE:-latest}
+  env_file: [/opt/cricit/.env]
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    restart: unless-stopped
+    depends_on: [api, admin]
+
+  api:
+    <<: *backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
+      interval: 30s
+
+  worker:
+    <<: *backend
+    command: ["arq", "app.workers.main.WorkerSettings"]
+
+  admin:
+    image: ghcr.io/${GHCR_OWNER}/cricit-admin:${RELEASE:-latest}
+    environment:
+      API_BASE_URL: http://api:8000
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+
+  postgres:
+    image: postgres:16-alpine
+    env_file: [/opt/cricit/.env]   # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB
+    volumes: [pgdata:/var/lib/postgresql/data]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction"]
+    volumes: [redisdata:/data]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+
+volumes:
+  pgdata:
+  redisdata:
+  caddydata:

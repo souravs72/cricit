@@ -1,0 +1,20 @@
+---
+description: Design rules for admin and mobile UI (from DESIGN.md + Anthropic frontend-design guidance)
+globs: admin/src/**, mobile/lib/**
+alwaysApply: false
+---
+
+- `DESIGN.md` is the source of truth for colour, type, radius and spacing. Use tokens, never raw hex.
+- The condensed headline (Barlow Condensed) is the one bold element per screen; keep the rest quiet.
+- Colour has meaning: outfield = primary action, ball = breaking/destructive only, scoreboard = live/new
+  only. Never use colour as the only signal.
+- Avoid template tells: no all-caps eyebrow labels, no identical rounded stat cards with soft shadows,
+  no gradient washes, no "→" appended to buttons, no fade-up entrance on every section, no numbered
+  markers unless the content is a real sequence.
+- Separate surfaces with spacing and the seam colour, not shadows. Radius by hierarchy (6 / 12 / full).
+- Motion only in response to a person's action; respect reduced motion.
+- Copy: sentence case, plain verbs, button names its result; errors say what happened and how to fix
+  it; empty states invite the next action.
+- Responsive down to 360 px; visible keyboard focus; WCAG AA contrast; labels on every control.
+- Before finishing a UI ticket, look at it (screenshot or browser) and remove one thing that doesn't
+  earn its place.

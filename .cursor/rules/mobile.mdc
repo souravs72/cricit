@@ -1,0 +1,15 @@
+---
+description: Flutter app rules
+globs: mobile/**
+alwaysApply: false
+---
+
+- Feature-first: `lib/features/<feature>/{data,domain,presentation}`; shared code in `lib/core`.
+- State: Riverpod providers per feature. No global singletons outside providers.
+- Network: only through `dioProvider` (`core/api/api_client.dart`). Map `DioException` with
+  `toApiException`; show its message, never a stack trace.
+- Tokens only via `TokenStore` (secure storage). Never log tokens or phone numbers.
+- Theme: colours and type only from `app/theme.dart` (mirrors `DESIGN.md`). No hard-coded colours.
+- Feed is a vertical `PageView` (swipe, not scroll). Keep at most 2 video players alive.
+- Every screen handles loading, empty, error and offline.
+- `flutter analyze` and `flutter test` must pass; add a widget or golden test for new UI.

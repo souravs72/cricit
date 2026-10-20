@@ -1,0 +1,22 @@
+---
+description: FastAPI backend rules
+globs: backend/**
+alwaysApply: false
+---
+
+- Python 3.12, fully typed; `mypy --strict app` must pass. Use `uv run` for every command.
+- Layers: routers (`app/api`) → services (`app/services`) → repositories (`app/repositories`) → models.
+  SQL only in repositories. Routers: parse input, call one service method, return a schema.
+- Every route has exactly one auth dependency from `app/core/auth.py`. New public routes need a comment
+  explaining why they are public.
+- Pydantic v2 schemas for every request and response (`app/schemas`). No `dict` responses for new routes.
+- Raise `AppError` subclasses; never `HTTPException` with a raw message.
+- Async all the way: SQLAlchemy async sessions, `httpx.AsyncClient` with explicit timeouts.
+- Jobs in `app/workers` are idempotent (upsert on natural keys) and safe to retry.
+- Migrations: change models → `make migration m="..."` → read the generated file → `make migrate`.
+  Never edit an applied migration; add a new one.
+- Tests: unit tests need no network; integration tests use `pytestmark = pytest.mark.integration`
+  and a real Postgres. Test the unhappy paths (wrong role, expired token, bad cursor).
+- Ingestion: only AI summaries are stored, never full article text. Respect each source's terms.
+- AI: prompts are versioned files in `app/ai/prompts/`; store `prompt_version` on every post; run
+  `validate_summary` before anything auto-publishes.

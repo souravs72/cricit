@@ -1,0 +1,12 @@
+---
+description: Project-wide rules for CRICIT
+alwaysApply: true
+---
+
+- Read `AGENTS.md` at the repo root before any change. It overrides your defaults.
+- Work on one ticket from `docs/tickets/` at a time; its "Acceptance" list is the definition of done.
+- Write tests first, then code. Run `make check` (or the app's target) before finishing, and report the
+  real result. Never say a check passed without running it.
+- Keep diffs small and focused on the ticket. No drive-by refactors.
+- Ask before adding a dependency; state why it's needed.
+- When unsure about a product decision, stop and ask instead of guessing.
