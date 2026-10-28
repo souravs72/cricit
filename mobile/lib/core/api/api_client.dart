@@ -16,7 +16,8 @@ class ApiException implements Exception {
   final String? requestId;
 
   @override
-  String toString() => 'ApiException($status, $code, $message, request_id=$requestId)';
+  String toString() =>
+      'ApiException($status, $code, $message, request_id=$requestId)';
 }
 
 /// Attaches the access token and refreshes it once on 401.
@@ -30,19 +31,28 @@ class AuthInterceptor extends QueuedInterceptor {
   Future<bool>? _refreshing;
 
   @override
-  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     final token = await _store.accessToken();
     if (token != null) options.headers['Authorization'] = 'Bearer $token';
     handler.next(options);
   }
 
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     final isAuthCall = err.requestOptions.path.startsWith('/v1/auth/');
-    if (err.response?.statusCode != 401 || isAuthCall || err.requestOptions.extra['retried'] == true) {
+    if (err.response?.statusCode != 401 ||
+        isAuthCall ||
+        err.requestOptions.extra['retried'] == true) {
       return handler.next(err);
     }
-    final ok = await (_refreshing ??= _refresh().whenComplete(() => _refreshing = null));
+    final ok = await (_refreshing ??=
+        _refresh().whenComplete(() => _refreshing = null));
     if (!ok) return handler.next(err);
     final retry = err.requestOptions..extra['retried'] = true;
     retry.headers['Authorization'] = 'Bearer ${await _store.accessToken()}';
@@ -76,7 +86,9 @@ class AuthInterceptor extends QueuedInterceptor {
 
 ApiException toApiException(DioException e) {
   final data = e.response?.data;
-  final err = data is Map<String, dynamic> ? data['error'] as Map<String, dynamic>? : null;
+  final err = data is Map<String, dynamic>
+      ? data['error'] as Map<String, dynamic>?
+      : null;
   return ApiException(
     e.response?.statusCode ?? 0,
     (err?['code'] as String?) ?? 'network_error',

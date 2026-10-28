@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from app.core.errors import ValidationFailed
 
-Tab = Literal["feed", "domestic", "international", "nxtspot"]
+Tab = Literal["feed", "video", "domestic", "international", "nxtspot"]
 Lang = Literal["en", "hi"]
 
 

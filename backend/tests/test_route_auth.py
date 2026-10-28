@@ -40,15 +40,22 @@ def test_admin_route_rejects_user_token(client, token_for):
     assert r.status_code == 401
 
 
-def test_permission_enforced_by_role(client, token_for):
-    viewer = client.get(
+def test_permission_enforced_by_role(token_for):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    quiet = TestClient(create_app(), raise_server_exceptions=False)
+    viewer = quiet.get(
         "/admin/v1/sources", headers={"Authorization": f"Bearer {token_for('viewer')}"}
     )
-    editor = client.get(
+    editor = quiet.get(
         "/admin/v1/sources", headers={"Authorization": f"Bearer {token_for('editor')}"}
     )
     assert viewer.status_code == 403
-    assert editor.status_code == 501  # allowed through; endpoint lands in T09
+    # Editor is allowed; the handler then reads Postgres (500 here if the DB is down).
+    assert editor.status_code != 403
+    assert editor.status_code != 401
 
 
 def test_security_headers_and_request_id(client):

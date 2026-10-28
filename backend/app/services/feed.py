@@ -7,11 +7,12 @@ from app.models import Post
 from app.repositories import posts as posts_repo
 from app.schemas.feed import Card, CardSource, FeedPage, Lang, Tab, decode_cursor, encode_cursor
 
-_TAB_CATEGORY: dict[Tab, str | None] = {
-    "feed": None,
-    "domestic": "domestic",
-    "international": "international",
-    "nxtspot": "grassroots",
+_TAB: dict[Tab, tuple[str | None, str | None]] = {
+    "feed": (None, None),
+    "video": (None, "video"),
+    "domestic": ("domestic", None),
+    "international": ("international", None),
+    "nxtspot": ("grassroots", None),
 }
 
 
@@ -45,8 +46,9 @@ async def get_feed(
 ) -> FeedPage:
     after = decode_cursor(cursor) if cursor else None
     limit = settings.feed_page_size
+    category, kind = _TAB[tab]
     rows = await posts_repo.list_published(
-        session, category=_TAB_CATEGORY[tab], kind=None, after=after, limit=limit + 1
+        session, category=category, kind=kind, after=after, limit=limit + 1
     )
     has_more = len(rows) > limit
     rows = rows[:limit]

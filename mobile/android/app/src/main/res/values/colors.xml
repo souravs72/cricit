@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="outfield">#17402B</color>
+    <color name="on_outfield">#FFFFFF</color>
+    <color name="sightscreen">#F7F9FA</color>
+    <color name="sightscreen_dark">#0F1A15</color>
+</resources>

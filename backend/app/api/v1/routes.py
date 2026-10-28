@@ -2,23 +2,24 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import UserClaims, public
 from app.core.config import Settings, get_settings
 from app.core.db import get_session
-from app.core.errors import AppError
+from app.core.errors import NotBuiltYet
+from app.core.ratelimit import RateLimiter
+from app.core.redis import get_redis
 from app.schemas.auth import FirebaseExchangeIn, RefreshIn, TokenPair
 from app.schemas.feed import FeedPage, Lang, Tab
+from app.schemas.newsroom import DiscoverOut
 from app.services import feed as feed_service
+from app.services import newsroom as newsroom_service
+from app.services import tokens as token_service
+from app.services import user_auth as user_auth_service
 
 router = APIRouter(prefix="/v1")
-
-
-class NotBuiltYet(AppError):
-    status_code = 501
-    code = "not_implemented"
 
 
 @router.get("/feed", response_model=FeedPage, dependencies=[Depends(public)])
@@ -45,19 +46,58 @@ async def get_config(response: Response) -> dict[str, object]:
     }
 
 
+@router.get("/search", response_model=FeedPage, dependencies=[Depends(public)])
+async def search(
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    q: Annotated[str, Query(min_length=1, max_length=80)],
+    lang: Lang = "en",
+) -> FeedPage:
+    """Public: readers search published cards. Rate-limited per IP."""
+    ip = request.client.host if request.client else "unknown"
+    await RateLimiter(get_redis()).hit(f"search:{ip}", limit=30, window_s=60)
+    return await newsroom_service.search(session, settings, q=q, lang=lang)
+
+
+@router.get("/discover", response_model=DiscoverOut, dependencies=[Depends(public)])
+async def discover(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    lang: Lang = "en",
+) -> DiscoverOut:
+    return await newsroom_service.discover(session, settings, lang=lang)
+
+
 @router.post("/auth/firebase", response_model=TokenPair, dependencies=[Depends(public)])
-async def exchange_firebase_token(body: FirebaseExchangeIn) -> TokenPair:
-    raise NotBuiltYet("T05: verify Firebase ID token, upsert user, open session, issue tokens")
+async def exchange_firebase_token(
+    body: FirebaseExchangeIn,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> TokenPair:
+    return await user_auth_service.exchange_id_token(
+        session, settings, id_token=body.id_token, device_id=body.device_id
+    )
 
 
 @router.post("/auth/refresh", response_model=TokenPair, dependencies=[Depends(public)])
-async def refresh(body: RefreshIn) -> TokenPair:
-    raise NotBuiltYet("T05: rotate refresh token; on reuse revoke the whole family")
+async def refresh(
+    body: RefreshIn,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> TokenPair:
+    pair = await token_service.rotate_refresh(session, settings, body.refresh_token)
+    await session.commit()
+    return pair
 
 
 @router.post("/auth/logout", status_code=204)
-async def logout(claims: UserClaims) -> None:
-    raise NotBuiltYet("T05: revoke session claims.sid")
+async def logout(
+    claims: UserClaims,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> None:
+    await token_service.logout(session, claims.sid)
+    await session.commit()
 
 
 @router.get("/me")

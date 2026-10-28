@@ -1,4 +1,4 @@
-/// Mirrors backend app/schemas/feed.py `Card`. T21 may move this to Freezed.
+/// Mirrors backend app/schemas/feed.py `Card`.
 class NewsCard {
   const NewsCard({
     required this.id,
@@ -8,6 +8,8 @@ class NewsCard {
     required this.summary,
     required this.publishedAt,
     required this.shareUrl,
+    this.headlineHi,
+    this.summaryHi,
     this.image,
     this.videoId,
     this.sourceName,
@@ -23,6 +25,8 @@ class NewsCard {
       category: json['category'] as String,
       headline: json['headline'] as String,
       summary: json['summary'] as String,
+      headlineHi: json['headline_hi'] as String?,
+      summaryHi: json['summary_hi'] as String?,
       publishedAt: DateTime.parse(json['published_at'] as String),
       shareUrl: json['share_url'] as String,
       image: json['image'] as String?,
@@ -33,11 +37,30 @@ class NewsCard {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'kind': kind,
+        'category': category,
+        'headline': headline,
+        'summary': summary,
+        'headline_hi': headlineHi,
+        'summary_hi': summaryHi,
+        'published_at': publishedAt.toUtc().toIso8601String(),
+        'share_url': shareUrl,
+        'image': image,
+        'video_id': videoId,
+        'source': sourceName == null ? null : {'name': sourceName},
+        'url': url,
+        'tags': tags,
+      };
+
   final String id;
   final String kind;
   final String category;
   final String headline;
   final String summary;
+  final String? headlineHi;
+  final String? summaryHi;
   final DateTime publishedAt;
   final String shareUrl;
   final String? image;
@@ -45,15 +68,23 @@ class NewsCard {
   final String? sourceName;
   final String? url;
   final List<String> tags;
+
+  bool get isVideo => kind == 'video' && videoId != null;
+  bool get isBreaking => tags.any((t) => t.toLowerCase() == 'breaking');
+  bool get hasHindi => headlineHi != null && summaryHi != null;
+
+  String headlineFor({required bool hindi}) =>
+      hindi && headlineHi != null ? headlineHi! : headline;
+  String summaryFor({required bool hindi}) =>
+      hindi && summaryHi != null ? summaryHi! : summary;
 }
 
 class FeedPage {
-  const FeedPage(this.cards, this.nextCursor);
+  const FeedPage(this.cards, this.nextCursor, {this.fromCache = false});
 
   factory FeedPage.fromJson(Map<String, dynamic> json) {
     final items = (json['items'] as List<dynamic>).cast<Map<String, dynamic>>();
     return FeedPage(
-      // Ad slots (kind == 'ad') are rendered by T32; skip them until then.
       items.where((i) => i['kind'] != 'ad').map(NewsCard.fromJson).toList(),
       json['next_cursor'] as String?,
     );
@@ -61,4 +92,5 @@ class FeedPage {
 
   final List<NewsCard> cards;
   final String? nextCursor;
+  final bool fromCache;
 }

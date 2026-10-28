@@ -43,3 +43,15 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
+
+/** Load a newsroom list; send the editor back to login on 401. */
+export async function loadOrLogin<T>(path: string): Promise<{ data: T | null; error: string | null }> {
+  try {
+    return { data: await apiFetch<T>(path), error: null };
+  } catch (e) {
+    const { redirect } = await import("next/navigation");
+    if (e instanceof ApiError && e.status === 401) redirect("/login");
+    const message = e instanceof ApiError ? e.message : "Could not load this page.";
+    return { data: null, error: message };
+  }
+}

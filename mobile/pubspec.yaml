@@ -20,10 +20,11 @@ dependencies:
   cached_network_image: ^3.4.1
   url_launcher: ^6.3.1
   share_plus: ^10.1.2
-  google_fonts: ^6.2.1
-  # Added by their tickets:
+  shared_preferences: ^2.3.3
+  # Fonts are bundled under fonts/ so first paint works on patchy data.
+  # Later tickets:
   # firebase_core / firebase_auth / firebase_messaging / firebase_app_check  (T22, T34)
-  # drift + sqlite3_flutter_libs  (T27 offline feed cache)
+  # drift + sqlite3_flutter_libs  (T27 — JSON cache ships now)
   # youtube_player_iframe  (T29)
   # google_mobile_ads  (T32)
 
@@ -33,4 +34,16 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+  generate: true
   uses-material-design: true
+  fonts:
+    - family: BarlowCondensed
+      fonts:
+        - asset: fonts/BarlowCondensed-SemiBold.ttf
+          weight: 600
+    - family: SourceSans3
+      fonts:
+        - asset: fonts/SourceSans3-Regular.ttf
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: fonts/NotoSansDevanagari.ttf

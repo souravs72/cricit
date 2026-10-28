@@ -7,6 +7,11 @@ analyzer:
   errors:
     missing_return: error
     unused_import: error
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
 
 linter:
   rules:

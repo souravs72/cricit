@@ -11,6 +11,8 @@ void main() {
           'category': 'international',
           'headline': 'Gill 104 powers India',
           'summary': 'India scored 287 for 5.',
+          'headline_hi': 'गिल की 104',
+          'summary_hi': 'भारत ने 287/5 बनाए।',
           'source': {'name': 'ESPNcricinfo'},
           'url': 'https://example.com/a',
           'tags': ['India', 'Shubman Gill'],
@@ -26,5 +28,7 @@ void main() {
     expect(page.cards.first.sourceName, 'ESPNcricinfo');
     expect(page.cards.first.tags, contains('India'));
     expect(page.nextCursor, 'abc');
+    expect(page.cards.first.headlineFor(hindi: true), 'गिल की 104');
+    expect(page.cards.first.toJson()['id'], page.cards.first.id);
   });
 }

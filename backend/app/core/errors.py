@@ -51,6 +51,11 @@ class RateLimited(AppError):
     code = "rate_limited"
 
 
+class NotBuiltYet(AppError):
+    status_code = 501
+    code = "not_implemented"
+
+
 def _body(request: Request, code: str, message: str, field: str | None = None) -> dict[str, Any]:
     err: dict[str, Any] = {
         "code": code,

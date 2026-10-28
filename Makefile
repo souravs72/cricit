@@ -34,6 +34,9 @@ admin: ## Run the admin dashboard on http://localhost:3000
 migrate: ## Apply migrations
 	cd backend && uv run alembic upgrade head
 
+seed: ## Load showcase data (owner, sources, 60 cards, ads, review queue)
+	cd backend && uv run python scripts/seed.py
+
 migration: ## Create a migration: make migration m="add x to y"
 	cd backend && uv run alembic revision --autogenerate -m "$(m)"
 
@@ -48,4 +51,4 @@ check-mobile: ## Analyze and test the Flutter app
 
 check: check-backend check-admin ## Run every check CI runs (mobile needs Flutter: make check-mobile)
 
-.PHONY: help setup keys up down logs db-up api admin migrate migration check check-backend check-admin check-mobile
+.PHONY: help setup keys up down logs db-up api admin migrate migration seed check check-backend check-admin check-mobile
