@@ -1,12 +1,12 @@
 """All SQL for posts lives here."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Post
+from app.models import Post, PostSource
 
 
 async def list_by_status(
@@ -19,9 +19,53 @@ async def list_by_status(
     return list((await session.scalars(stmt)).all())
 
 
-async def list_all(session: AsyncSession, *, limit: int = 80) -> list[Post]:
-    stmt = select(Post).order_by(Post.updated_at.desc()).limit(limit)
+async def list_all(
+    session: AsyncSession,
+    *,
+    limit: int = 80,
+    status: str | None = None,
+    category: str | None = None,
+) -> list[Post]:
+    stmt = select(Post)
+    if status:
+        stmt = stmt.where(Post.status == status)
+    if category:
+        stmt = stmt.where(Post.category == category)
+    stmt = stmt.order_by(Post.updated_at.desc()).limit(limit)
     return list((await session.scalars(stmt)).all())
+
+
+async def hashes_in(session: AsyncSession, hashes: list[str]) -> set[str]:
+    if not hashes:
+        return set()
+    stmt = select(Post.url_hash).where(Post.url_hash.in_(hashes))
+    return {h for h in (await session.scalars(stmt)).all() if h}
+
+
+async def list_recent_for_dedupe(session: AsyncSession, *, hours: int = 48) -> list[Post]:
+    cutoff = datetime.now(UTC) - timedelta(hours=hours)
+    stmt = (
+        select(Post)
+        .where(Post.status.in_(("published", "review")), Post.created_at >= cutoff)
+        .order_by(Post.created_at.desc())
+        .limit(80)
+    )
+    return list((await session.scalars(stmt)).all())
+
+
+async def add_source_link(
+    session: AsyncSession,
+    *,
+    post_id: uuid.UUID,
+    source_id: uuid.UUID | None,
+    url: str,
+) -> None:
+    existing = await session.scalar(
+        select(PostSource).where(PostSource.post_id == post_id, PostSource.url == url)
+    )
+    if existing is not None:
+        return
+    session.add(PostSource(post_id=post_id, source_id=source_id, url=url))
 
 
 async def search_published(session: AsyncSession, query: str, *, limit: int = 20) -> list[Post]:

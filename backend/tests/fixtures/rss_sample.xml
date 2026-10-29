@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>CRICIT RSS fixture</title>
+    <link>https://www.espncricinfo.com/</link>
+    <item>
+      <title>Gill 104 keeps India in front at Perth</title>
+      <link>https://www.espncricinfo.com/story/gill-104</link>
+      <pubDate>Tue, 20 Oct 2026 12:00:00 GMT</pubDate>
+      <description>Shubman Gill's fifth Test hundred dragged India to 287 for 5 after a rain break.</description>
+    </item>
+    <item>
+      <title>Gill 104 keeps India in front at Perth (mirror)</title>
+      <link>https://www.espncricinfo.com/story/gill-104?utm_source=rss</link>
+      <description>Same story, tracking query. url_hash must collapse this.</description>
+    </item>
+    <item>
+      <title>England rest Archer for the Oval ODI</title>
+      <link>https://feeds.bbci.co.uk/sport/cricket/archer-rest</link>
+      <pubDate>Tue, 20 Oct 2026 13:00:00 GMT</pubDate>
+      <description>Jofra Archer will skip Thursday's match after scans showed tightness in his right side.</description>
+    </item>
+    <item>
+      <title></title>
+      <link>https://www.espncricinfo.com/story/empty-title</link>
+    </item>
+  </channel>
+</rss>

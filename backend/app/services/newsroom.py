@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.models import Post, Source
 from app.repositories import ads as ads_repo
 from app.repositories import audit as audit_repo
 from app.repositories import nxtspot as nxtspot_repo
@@ -25,24 +26,43 @@ from app.schemas.newsroom import (
 from app.services.feed import to_card
 
 
-def _source_out(row: object) -> SourceOut:
-    return SourceOut.model_validate(row, from_attributes=True)
+def source_out(row: Source) -> SourceOut:
+    """Map a Source ORM row to SourceOut. Callers: list_sources, services.sources."""
+    cfg = row.adapter_config or {}
+    feed = cfg.get("feed_url") or cfg.get("listing_url") or cfg.get("sitemap_url")
+    return SourceOut(
+        id=row.id,
+        name=row.name,
+        type=row.type,
+        adapter=row.adapter,
+        default_category=row.default_category,
+        trust_level=row.trust_level,
+        is_active=row.is_active,
+        consecutive_failures=row.consecutive_failures,
+        last_error=row.last_error,
+        last_fetched_at=row.last_fetched_at,
+        feed_url=feed if isinstance(feed, str) else None,
+        fetch_interval_min=row.fetch_interval_min,
+    )
 
 
-def _post_item(row: object) -> PostListItem:
+def post_item(row: Post) -> PostListItem:
+    """Map a Post ORM row. Callers: list_posts, list_review, services.posts."""
     return PostListItem.model_validate(row, from_attributes=True)
 
 
 async def list_sources(db: AsyncSession) -> list[SourceOut]:
-    return [_source_out(s) for s in await sources_repo.list_all(db)]
+    return [source_out(s) for s in await sources_repo.list_all(db)]
 
 
-async def list_posts(db: AsyncSession) -> list[PostListItem]:
-    return [_post_item(p) for p in await posts_repo.list_all(db)]
+async def list_posts(
+    db: AsyncSession, *, status: str | None = None, category: str | None = None
+) -> list[PostListItem]:
+    return [post_item(p) for p in await posts_repo.list_all(db, status=status, category=category)]
 
 
 async def list_review(db: AsyncSession) -> list[PostListItem]:
-    return [_post_item(p) for p in await posts_repo.list_by_status(db, status="review")]
+    return [post_item(p) for p in await posts_repo.list_by_status(db, status="review")]
 
 
 async def list_ads(db: AsyncSession) -> list[AdOut]:

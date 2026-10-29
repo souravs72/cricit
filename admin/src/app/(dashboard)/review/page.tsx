@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { PostsTable } from "@/components/newsroom/posts-table";
+import { ReviewQueue } from "@/components/newsroom/review-queue";
 import { NewsroomShell } from "@/components/newsroom/shell";
 import { loadOrLogin } from "@/lib/api/server";
 import type { PostRow } from "@/lib/newsroom";
 
 export const metadata: Metadata = { title: "Review queue" };
 
-/** GET /admin/v1/review. Permission posts:write. Schema PostListItem. */
+/** Next.js route /review. Callers: sidebar. API: GET /admin/v1/review. Schema: PostRow.
+ * User: "Check what is tobe built now into this - build it"
+ */
 
 export default async function ReviewPage() {
   const { data, error } = await loadOrLogin<PostRow[]>("/admin/v1/review");
@@ -16,11 +18,7 @@ export default async function ReviewPage() {
       description="Cards from sources set to review, possible duplicates, and every Nxtspot draft land here before readers see them."
       error={error}
     >
-      <PostsTable
-        rows={data ?? []}
-        emptyTitle="No cards waiting."
-        emptyBody="When the worker drafts a card that needs an editor, it shows up here."
-      />
+      <ReviewQueue rows={data ?? []} />
     </NewsroomShell>
   );
 }

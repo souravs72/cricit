@@ -33,6 +33,7 @@ def test_search_query_schema():
 
 
 def test_unauthenticated_admin_lists_are_401(client):
+    """pytest. API: GET lists + POST /admin/v1/sources and publish. User: build it."""
     for path in (
         "/admin/v1/sources",
         "/admin/v1/posts",
@@ -43,6 +44,24 @@ def test_unauthenticated_admin_lists_are_401(client):
         "/admin/v1/stats/overview",
     ):
         assert client.get(path).status_code == 401, path
+    assert (
+        client.post(
+            "/admin/v1/sources",
+            json={
+                "name": "X",
+                "type": "news",
+                "adapter": "rss",
+                "adapter_config": {
+                    "feed_url": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml"
+                },
+            },
+        ).status_code
+        == 401
+    )
+    assert (
+        client.post("/admin/v1/posts/00000000-0000-0000-0000-000000000001/publish").status_code
+        == 401
+    )
 
 
 def test_viewer_cannot_write_surfaces(client, token_for):
@@ -52,6 +71,43 @@ def test_viewer_cannot_write_surfaces(client, token_for):
     assert client.get("/admin/v1/audit", headers=headers).status_code == 403
     assert client.get("/admin/v1/nxtspot", headers=headers).status_code == 403
     assert client.get("/admin/v1/sources", headers=headers).status_code == 403
+    assert (
+        client.post(
+            "/admin/v1/sources",
+            headers=headers,
+            json={
+                "name": "No",
+                "type": "news",
+                "adapter": "rss",
+                "adapter_config": {
+                    "feed_url": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml"
+                },
+            },
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/admin/v1/posts/00000000-0000-0000-0000-000000000001/publish",
+            headers=headers,
+        ).status_code
+        == 403
+    )
+
+
+def test_ssrf_on_create_is_422_without_touching_the_database(client, token_for):
+    headers = {"Authorization": f"Bearer {token_for('editor')}"}
+    r = client.post(
+        "/admin/v1/sources",
+        headers=headers,
+        json={
+            "name": "SSRF",
+            "type": "news",
+            "adapter": "rss",
+            "adapter_config": {"feed_url": "http://127.0.0.1/rss.xml"},
+        },
+    )
+    assert r.status_code == 422
 
 
 def test_editor_is_kept_off_ads_and_audit(token_for):

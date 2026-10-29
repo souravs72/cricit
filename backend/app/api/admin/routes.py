@@ -1,6 +1,7 @@
 """Admin API (/admin/v1). Never cached. Every write must also write to audit_log (T06+)."""
 
-from typing import Annotated
+from typing import Annotated, Literal
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +14,11 @@ from app.core.redis import get_redis
 from app.core.security import TokenClaims
 from app.schemas.auth import AdminChallenge, AdminLoginIn, AdminTotpIn, TokenPair
 from app.schemas.newsroom import AdOut, AuditOut, NxtspotOut, OverviewStats, PostListItem, SourceOut
+from app.schemas.sources import SourceCreate, SourcePatch, TestFetchOut
 from app.services import admin_auth as admin_auth_service
 from app.services import newsroom as newsroom_service
+from app.services import posts as posts_service
+from app.services import sources as sources_service
 
 router = APIRouter(prefix="/admin/v1")
 
@@ -72,13 +76,68 @@ async def list_sources(
     return await newsroom_service.list_sources(session)
 
 
+@router.post("/sources", response_model=SourceOut)
+async def create_source(
+    body: SourceCreate,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.SOURCES_MANAGE)),  # noqa: B008
+) -> SourceOut:
+    return await sources_service.create(session, body, admin_id=UUID(claims.sub), ip=_ip(request))
+
+
+@router.patch("/sources/{source_id}", response_model=SourceOut)
+async def update_source(
+    source_id: UUID,
+    body: SourcePatch,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.SOURCES_MANAGE)),  # noqa: B008
+) -> SourceOut:
+    return await sources_service.update(
+        session, source_id, body, admin_id=UUID(claims.sub), ip=_ip(request)
+    )
+
+
+@router.post("/sources/{source_id}/test", response_model=TestFetchOut)
+async def test_source(
+    source_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.SOURCES_MANAGE)),  # noqa: B008
+) -> TestFetchOut:
+    del claims
+    return await sources_service.test_fetch(session, source_id)
+
+
 @router.get("/posts", response_model=list[PostListItem])
 async def list_posts(
     session: Annotated[AsyncSession, Depends(get_session)],
     claims: TokenClaims = Depends(require(Permission.DASHBOARD_VIEW)),  # noqa: B008
+    status: Literal["draft", "review", "published", "rejected"] | None = None,
+    category: Literal["domestic", "international", "grassroots"] | None = None,
 ) -> list[PostListItem]:
     del claims
-    return await newsroom_service.list_posts(session)
+    return await newsroom_service.list_posts(session, status=status, category=category)
+
+
+@router.post("/posts/{post_id}/publish", response_model=PostListItem)
+async def publish_post(
+    post_id: UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.POSTS_PUBLISH)),  # noqa: B008
+) -> PostListItem:
+    return await posts_service.publish(session, post_id, admin_id=UUID(claims.sub), ip=_ip(request))
+
+
+@router.post("/posts/{post_id}/reject", response_model=PostListItem)
+async def reject_post(
+    post_id: UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.POSTS_WRITE)),  # noqa: B008
+) -> PostListItem:
+    return await posts_service.reject(session, post_id, admin_id=UUID(claims.sub), ip=_ip(request))
 
 
 @router.get("/review", response_model=list[PostListItem])

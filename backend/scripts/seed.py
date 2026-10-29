@@ -47,6 +47,25 @@ SOURCES = [
     ("BCCI YouTube", "youtube_channel", "youtube", "international", "auto"),
 ]
 
+# Public feeds from docs/sources.md. Re-runs fill adapter_config if it was empty.
+FEED_CONFIG: dict[str, dict[str, str]] = {
+    "ESPNcricinfo": {
+        "kind": "rss",
+        "feed_url": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
+    },
+    "BBC Sport Cricket": {
+        "kind": "rss",
+        "feed_url": "https://feeds.bbci.co.uk/sport/cricket/rss.xml",
+    },
+    "Times of India Cricket": {
+        "kind": "rss",
+        "feed_url": "https://timesofindia.indiatimes.com/rssfeeds/4716741.cms",
+    },
+    "BCCI": {"kind": "html", "listing_url": "https://www.bcci.tv/news"},
+    "ICC": {"kind": "html", "listing_url": "https://www.icc-cricket.com/news"},
+    "BCCI YouTube": {"kind": "youtube", "channel_id": "UCiErvZ3iVs0LnWoJBWcuK8Q"},
+}
+
 CARDS: list[tuple[str, str, str, str, str, str, str, list[str]]] = [
     (
         "read",
@@ -170,19 +189,25 @@ async def seed(session: AsyncSession) -> None:
         )
 
     for name, typ, adapter, category, trust in SOURCES:
-        if await session.scalar(select(Source).where(Source.name == name)):
-            continue
-        session.add(
-            Source(
-                name=name,
-                type=typ,
-                adapter=adapter,
-                default_category=category,
-                trust_level=trust,
-                is_active=True,
-                verified_at=NOW,
+        existing = await session.scalar(select(Source).where(Source.name == name))
+        cfg = FEED_CONFIG.get(name, {"kind": "none"})
+        if existing is None:
+            session.add(
+                Source(
+                    name=name,
+                    type=typ,
+                    adapter=adapter,
+                    adapter_config=cfg,
+                    default_category=category,
+                    trust_level=trust,
+                    is_active=True,
+                    verified_at=NOW,
+                )
             )
-        )
+        elif not (existing.adapter_config or {}).get("feed_url") and not (
+            existing.adapter_config or {}
+        ).get("listing_url"):
+            existing.adapter_config = cfg
     await session.flush()
 
     if await session.scalar(select(User).where(User.phone == "9876543210")) is None:

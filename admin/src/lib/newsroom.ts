@@ -2,6 +2,9 @@
  * Importers: dashboard pages via loadOrLogin.
  */
 
+/** Types for GET /admin/v1/sources and /posts. Callers: dashboard pages, review-queue, sources-manager.
+ * User: "Check what is tobe built now into this - build it"
+ */
 export type SourceRow = {
   id: string;
   name: string;
@@ -13,6 +16,8 @@ export type SourceRow = {
   consecutive_failures: number;
   last_error: string | null;
   last_fetched_at: string | null;
+  feed_url?: string | null;
+  fetch_interval_min?: number;
 };
 
 export type PostRow = {
@@ -21,10 +26,12 @@ export type PostRow = {
   status: string;
   category: string;
   headline: string;
+  summary?: string;
   author_credit: string | null;
   published_at: string | null;
   prompt_version: string | null;
   tags: string[];
+  original_url?: string | null;
 };
 
 export type AdRow = {

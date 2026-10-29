@@ -22,6 +22,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // AGP 9 disables resValues unless we opt in; flavors set app_name via resValue.
+    buildFeatures {
+        resValues = true
+    }
+
     defaultConfig {
         applicationId = "app.cricit"
         minSdk = 23

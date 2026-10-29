@@ -7,6 +7,8 @@ from app.schemas.feed import FeedPage
 
 
 class SourceOut(BaseModel):
+    """GET /admin/v1/sources. User: "Check what is tobe built now into this - build it" """
+
     id: UUID
     name: str
     type: str
@@ -17,18 +19,24 @@ class SourceOut(BaseModel):
     consecutive_failures: int
     last_error: str | None
     last_fetched_at: datetime | None
+    feed_url: str | None = None
+    fetch_interval_min: int = 10
 
 
 class PostListItem(BaseModel):
+    """GET /admin/v1/posts and /review; POST publish/reject response."""
+
     id: UUID
     kind: str
     status: str
     category: str
     headline: str
+    summary: str = ""
     author_credit: str | None
     published_at: datetime | None
     prompt_version: str | None = None
     tags: list[str] = Field(default_factory=list)
+    original_url: str | None = None
 
 
 class AdOut(BaseModel):
