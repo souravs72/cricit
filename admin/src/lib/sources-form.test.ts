@@ -28,4 +28,30 @@ describe("sourceCreatePayload", () => {
       feed_url: "https://feeds.bbci.co.uk/sport/cricket/rss.xml",
     });
   });
+
+  it("builds an html create body", () => {
+    const body = sourceCreatePayload({
+      name: "BCCI",
+      adapter: "html",
+      feed_url: "https://www.bcci.tv/news",
+      default_category: "domestic",
+      trust_level: "review",
+    });
+    expect(body.adapter).toBe("html");
+    expect(body.adapter_config).toEqual({ listing_url: "https://www.bcci.tv/news" });
+  });
+
+  it("builds a sitemap create body", () => {
+    const body = sourceCreatePayload({
+      name: "BCCI sitemap",
+      adapter: "sitemap",
+      feed_url: "https://www.bcci.tv/news-sitemap.xml",
+      default_category: "domestic",
+      trust_level: "review",
+    });
+    expect(body.adapter).toBe("sitemap");
+    expect(body.adapter_config).toEqual({
+      sitemap_url: "https://www.bcci.tv/news-sitemap.xml",
+    });
+  });
 });

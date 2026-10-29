@@ -7,6 +7,7 @@ User: "Check what is tobe built now into this - build it"
 
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -17,6 +18,7 @@ from app.repositories import audit as audit_repo
 from app.repositories import posts as posts_repo
 from app.schemas.newsroom import PostListItem
 from app.services.newsroom import post_item
+from app.services.publish import rebuild_after_publish
 
 _EDITABLE = frozenset({"review", "draft"})
 
@@ -41,6 +43,8 @@ async def publish(
     )
     await db.commit()
     await db.refresh(post)
+    with contextlib.suppress(Exception):
+        await rebuild_after_publish(db, post)
     return post_item(post)
 
 

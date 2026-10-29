@@ -51,7 +51,8 @@ export function ReviewQueue({ rows }: { rows: PostRow[] }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Keyboard: j/k move, a approve, r reject.
+        Keyboard: j/k move, a approve, r reject. Possible duplicates show the existing
+        headline so an editor can decide.
       </p>
       <PostsTable
         rows={rows}

@@ -37,6 +37,8 @@ class RssAdapterConfig(BaseModel):
 class SitemapAdapterConfig(BaseModel):
     kind: Literal["sitemap"] = "sitemap"
     sitemap_url: str
+    etag: str | None = None
+    last_modified: str | None = None
 
     @model_validator(mode="after")
     def _public_map(self) -> Self:
@@ -47,6 +49,10 @@ class SitemapAdapterConfig(BaseModel):
 class HtmlAdapterConfig(BaseModel):
     kind: Literal["html"] = "html"
     listing_url: str
+    item_selector: str = Field(default="article a[href], a[href*='/news/']", max_length=240)
+    title_selector: str | None = Field(default=None, max_length=240)
+    etag: str | None = None
+    last_modified: str | None = None
 
     @model_validator(mode="after")
     def _public_listing(self) -> Self:

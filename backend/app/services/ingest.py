@@ -7,6 +7,7 @@ Schemas: PlannedPost, Post (headline, summary teaser, original_url, url_hash, st
 
 from __future__ import annotations
 
+import contextlib
 import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -15,6 +16,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ingestion.adapters import FETCHABLE, adapter_for
 from app.ingestion.adapters.base import FetchResult, RawItem
 from app.ingestion.adapters.rss import RssAdapter
 from app.ingestion.dedupe import Candidate, Verdict, check_pass1, url_hash
@@ -40,7 +42,7 @@ def job_id_for(source_id: UUID, interval_min: int, *, at: datetime | None = None
 
 
 def is_due(source: Source, *, now: datetime | None = None) -> bool:
-    if not source.is_active or source.adapter != "rss":
+    if not source.is_active or source.adapter not in FETCHABLE:
         return False
     clock = now or datetime.now(UTC)
     if source.last_fetched_at is None:
@@ -162,14 +164,15 @@ def plan_items(
 
 async def fetch_and_store(db: AsyncSession, source_id: UUID) -> dict[str, int | str | bool]:
     source = await sources_repo.get(db, source_id)
-    if source is None or source.adapter != "rss":
+    adapter = adapter_for(source.adapter) if source is not None else None
+    if source is None or adapter is None:
         return {"skipped": True, "created": 0, "merged": 0}
     now = datetime.now(UTC)
     cfg = dict(source.adapter_config or {})
     etag = cfg.get("etag")
     last_modified = cfg.get("last_modified")
     try:
-        result = await RssAdapter().fetch(
+        result = await adapter.fetch(
             cfg,
             etag=etag if isinstance(etag, str) else None,
             last_modified=last_modified if isinstance(last_modified, str) else None,
@@ -210,6 +213,7 @@ async def fetch_and_store(db: AsyncSession, source_id: UUID) -> dict[str, int | 
                 original_url=plan.original_url,
                 url_hash=plan.url_hash,
                 source_id=source.id,
+                possible_duplicate_of=plan.possible_duplicate_of,
                 author_credit=source.name,
                 image_url=plan.image_url,
                 tags=[],
@@ -219,4 +223,9 @@ async def fetch_and_store(db: AsyncSession, source_id: UUID) -> dict[str, int | 
         created += 1
     record_success(source, etag=result.etag, last_modified=result.last_modified, now=now)
     await db.commit()
+    if created:
+        from app.services.publish import invalidate_all_feeds
+
+        with contextlib.suppress(Exception):
+            await invalidate_all_feeds()
     return {"created": created, "merged": merged, "not_modified": False}

@@ -7,7 +7,7 @@ import type { Overview } from "@/lib/newsroom";
 
 export const metadata: Metadata = { title: "Overview" };
 
-/** GET /admin/v1/stats/overview. Schema OverviewStats. Never invent reader counts. */
+/** GET /admin/v1/stats/overview. Schema OverviewStats. Readers today is rolled-up /v1/events views. */
 
 export default async function OverviewPage() {
   const { data, error } = await loadOrLogin<Overview>("/admin/v1/stats/overview");

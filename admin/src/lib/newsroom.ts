@@ -32,6 +32,8 @@ export type PostRow = {
   prompt_version: string | null;
   tags: string[];
   original_url?: string | null;
+  possible_duplicate_of?: string | null;
+  duplicate_headline?: string | null;
 };
 
 export type AdRow = {
@@ -43,6 +45,8 @@ export type AdRow = {
   start_at: string;
   end_at: string;
   daily_cap: number | null;
+  impressions_today?: number;
+  clicks_today?: number;
 };
 
 export type AuditRow = {

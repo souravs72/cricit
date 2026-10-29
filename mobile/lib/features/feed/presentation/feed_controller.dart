@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/settings/settings_controller.dart';
+import '../data/events_repository.dart';
 import '../data/feed_repository.dart';
 import '../domain/news_card.dart';
 
@@ -68,7 +69,13 @@ class FeedController extends Notifier<FeedSnapshot> {
   }
 
   FeedRepository get _repo => ref.read(feedRepositoryProvider);
+  EventsRepository get _events => ref.read(eventsRepositoryProvider);
   String get _lang => ref.read(settingsProvider).language;
+
+  void _view(int index) {
+    if (index < 0 || index >= state.cards.length) return;
+    _events.enqueue(name: 'view', postId: state.cards[index].id);
+  }
 
   Future<void> reload() async {
     state = state.copyWith(status: FeedStatus.loading, clearError: true);
@@ -120,6 +127,7 @@ class FeedController extends Notifier<FeedSnapshot> {
 
   void onPageChanged(int index) {
     state = state.copyWith(pageIndex: index);
+    _view(index);
     if (state.nextCursor != null &&
         !state.loadingMore &&
         index >= state.cards.length - 5) {

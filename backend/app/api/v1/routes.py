@@ -12,12 +12,15 @@ from app.core.errors import NotBuiltYet
 from app.core.ratelimit import RateLimiter
 from app.core.redis import get_redis
 from app.schemas.auth import FirebaseExchangeIn, RefreshIn, TokenPair
+from app.schemas.events import EventsIn
 from app.schemas.feed import FeedPage, Lang, Tab
 from app.schemas.newsroom import DiscoverOut
+from app.services import events as events_service
 from app.services import feed as feed_service
 from app.services import newsroom as newsroom_service
 from app.services import tokens as token_service
 from app.services import user_auth as user_auth_service
+from app.services.feed import FEED_CACHE_CONTROL
 
 router = APIRouter(prefix="/v1")
 
@@ -31,19 +34,39 @@ async def get_feed(
     lang: Lang = "en",
     cursor: Annotated[str | None, Query(max_length=200)] = None,
 ) -> FeedPage:
-    response.headers["Cache-Control"] = "public, s-maxage=60, stale-while-revalidate=300"
-    return await feed_service.get_feed(session, settings, tab=tab, lang=lang, cursor=cursor)
+    response.headers["Cache-Control"] = FEED_CACHE_CONTROL
+    return await feed_service.get_feed(
+        session,
+        settings,
+        tab=tab,
+        lang=lang,
+        cursor=cursor,
+        redis=get_redis(),
+    )
 
 
 @router.get("/config", dependencies=[Depends(public)])
-async def get_config(response: Response) -> dict[str, object]:
+async def get_config(
+    response: Response,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> dict[str, object]:
     response.headers["Cache-Control"] = "public, s-maxage=600"
     return {
         "min_app_version": "1.0.0",
         "tabs": ["feed", "video", "domestic", "international", "nxtspot"],
-        "ad_every_n_cards": 6,
-        "nxtspot_every_n_cards": 8,
+        "ad_every_n_cards": settings.ad_every_n_cards,
+        "nxtspot_every_n_cards": settings.nxtspot_every_n_cards,
     }
+
+
+@router.post("/events", status_code=204, dependencies=[Depends(public)])
+async def post_events(request: Request, body: EventsIn) -> None:
+    redis = get_redis()
+    ip = request.client.host if request.client else "unknown"
+    limiter = RateLimiter(redis)
+    await limiter.hit(f"events-ip:{ip}", limit=120, window_s=60)
+    await limiter.hit(f"events:{body.device_id}", limit=60, window_s=60)
+    await events_service.record(redis, body.events)
 
 
 @router.get("/search", response_model=FeedPage, dependencies=[Depends(public)])

@@ -4,8 +4,11 @@ Callers: pytest. Schemas: SourceCreate, SourcePatch. Route: POST /admin/v1/sourc
 User: "Check what is tobe built now into this - build it"
 """
 
+from uuid import uuid4
+
 from pydantic import ValidationError
 
+from app.schemas.newsroom import PostListItem
 from app.schemas.sources import SourceCreate, SourcePatch
 
 
@@ -53,9 +56,48 @@ def test_html_requires_listing_url() -> None:
         trust_level="review",
     )
     assert row.adapter_config["kind"] == "html"
+    assert "item_selector" in row.adapter_config
+
+
+def test_sitemap_requires_public_url() -> None:
+    row = SourceCreate(
+        name="BCCI sitemap",
+        type="news",
+        adapter="sitemap",
+        adapter_config={"sitemap_url": "https://www.bcci.tv/news-sitemap.xml"},
+    )
+    assert row.adapter_config["kind"] == "sitemap"
+    try:
+        SourceCreate(
+            name="Bad sitemap",
+            type="news",
+            adapter="sitemap",
+            adapter_config={"sitemap_url": "http://127.0.0.1/sitemap.xml"},
+        )
+        raise AssertionError("localhost sitemap must fail SSRF")
+    except ValidationError:
+        pass
 
 
 def test_patch_can_pause_without_touching_config() -> None:
     patch = SourcePatch(is_active=False)
     assert patch.is_active is False
     assert patch.adapter_config is None
+
+
+def test_review_item_carries_possible_duplicate_headline() -> None:
+    other = uuid4()
+    item = PostListItem(
+        id=uuid4(),
+        kind="read",
+        status="review",
+        category="international",
+        headline="India lose to Australia in Perth Test",
+        author_credit="BBC Sport Cricket",
+        published_at=None,
+        tags=[],
+        possible_duplicate_of=other,
+        duplicate_headline="India beat Australia in Perth Test",
+    )
+    assert item.possible_duplicate_of == other
+    assert item.duplicate_headline == "India beat Australia in Perth Test"

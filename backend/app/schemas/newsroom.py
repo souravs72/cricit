@@ -37,6 +37,8 @@ class PostListItem(BaseModel):
     prompt_version: str | None = None
     tags: list[str] = Field(default_factory=list)
     original_url: str | None = None
+    possible_duplicate_of: UUID | None = None
+    duplicate_headline: str | None = None
 
 
 class AdOut(BaseModel):
@@ -48,6 +50,8 @@ class AdOut(BaseModel):
     start_at: datetime
     end_at: datetime
     daily_cap: int | None
+    impressions_today: int = 0
+    clicks_today: int = 0
 
 
 class AuditOut(BaseModel):

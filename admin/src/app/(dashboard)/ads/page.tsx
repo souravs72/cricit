@@ -42,6 +42,8 @@ export default async function AdsPage() {
                 <TableHead>Live</TableHead>
                 <TableHead>Window</TableHead>
                 <TableHead>Daily cap</TableHead>
+                <TableHead>Impressions today</TableHead>
+                <TableHead>Clicks today</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -57,6 +59,8 @@ export default async function AdsPage() {
                     {formatWhen(row.start_at)} – {formatWhen(row.end_at)}
                   </TableCell>
                   <TableCell className="tabular-nums">{row.daily_cap ?? "—"}</TableCell>
+                  <TableCell className="tabular-nums">{row.impressions_today ?? 0}</TableCell>
+                  <TableCell className="tabular-nums">{row.clicks_today ?? 0}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

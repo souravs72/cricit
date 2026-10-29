@@ -7,7 +7,10 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 FILE="/var/backups/cricit/cricit-${STAMP}.dump"
 mkdir -p /var/backups/cricit
 
-docker compose -f /opt/cricit/infra/docker-compose.prod.yml exec -T postgres \
+COMPOSE_FILE=/opt/cricit/infra/docker-compose.prod.yml
+[[ -f /opt/cricit/infra/docker-compose.oci.yml ]] && COMPOSE_FILE=/opt/cricit/infra/docker-compose.oci.yml
+
+docker compose --env-file /opt/cricit/.env -f "${COMPOSE_FILE}" exec -T postgres \
   sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "${FILE}"
 
 # A dump smaller than 10 KB means something went wrong; fail loudly.

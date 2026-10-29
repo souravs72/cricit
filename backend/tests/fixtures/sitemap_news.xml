@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  <url>
+    <loc>https://www.bcci.tv/news/gill-104-perth</loc>
+    <news:news>
+      <news:publication>
+        <news:name>BCCI</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>2026-10-28T12:00:00+00:00</news:publication_date>
+      <news:title>Gill 104 keeps India in front at Perth</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://www.bcci.tv/news/old-story</loc>
+    <news:news>
+      <news:publication_date>2026-10-20T12:00:00+00:00</news:publication_date>
+      <news:title>Old story from last week</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>http://127.0.0.1/news/internal</loc>
+    <news:news>
+      <news:publication_date>2026-10-28T15:00:00+00:00</news:publication_date>
+      <news:title>Internal preview</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://www.bcci.tv/news/no-title</loc>
+    <lastmod>2026-10-28T16:00:00+00:00</lastmod>
+  </url>
+</urlset>

@@ -19,9 +19,16 @@ async def list_all(session: AsyncSession) -> list[Source]:
     return list((await session.scalars(stmt)).all())
 
 
-async def list_active_rss(session: AsyncSession) -> list[Source]:
-    stmt = select(Source).where(Source.is_active.is_(True), Source.adapter == "rss")
+async def list_active_fetchable(session: AsyncSession) -> list[Source]:
+    stmt = select(Source).where(
+        Source.is_active.is_(True),
+        Source.adapter.in_(("rss", "html", "sitemap")),
+    )
     return list((await session.scalars(stmt)).all())
+
+
+async def list_active_rss(session: AsyncSession) -> list[Source]:
+    return await list_active_fetchable(session)
 
 
 async def get(session: AsyncSession, source_id: UUID) -> Source | None:

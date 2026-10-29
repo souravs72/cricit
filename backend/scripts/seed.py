@@ -8,14 +8,18 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import os
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from showcase_data import IMAGES, PUBLISHED, REVIEW
 
 from app.core.db import get_sessionmaker
 from app.core.security import hash_password, hash_refresh_token
@@ -23,16 +27,18 @@ from app.models import (
     AdCampaign,
     Admin,
     AdminRecoveryCode,
+    AdStatsDaily,
     AiJob,
     AuditLog,
     NxtspotSubmission,
     Post,
+    PostStatsDaily,
     Source,
     User,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-CREDS = ROOT / ".seed-credentials"
+CREDS = Path(os.environ.get("SEED_CREDS", str(ROOT / ".seed-credentials")))
 DEMO_TOTP = "JBSWY3DPEHPK3PXP"
 DEMO_RECOVERY = "a1b2c3-d4e5f6"
 NOW = datetime.now(UTC)
@@ -43,8 +49,12 @@ SOURCES = [
     ("Times of India Cricket", "news", "rss", "domestic", "review"),
     ("BCCI", "news", "html", "domestic", "auto"),
     ("ICC", "news", "html", "international", "review"),
+    ("IPL", "news", "html", "domestic", "review"),
+    ("NDTV Sports", "news", "rss", "domestic", "review"),
+    ("ESPNcricinfo (India)", "news", "rss", "international", "auto"),
     ("Nxtspot", "news", None, "grassroots", "review"),
     ("BCCI YouTube", "youtube_channel", "youtube", "international", "auto"),
+    ("ICC YouTube", "youtube_channel", "youtube", "international", "auto"),
 ]
 
 # Public feeds from docs/sources.md. Re-runs fill adapter_config if it was empty.
@@ -61,73 +71,64 @@ FEED_CONFIG: dict[str, dict[str, str]] = {
         "kind": "rss",
         "feed_url": "https://timesofindia.indiatimes.com/rssfeeds/4716741.cms",
     },
-    "BCCI": {"kind": "html", "listing_url": "https://www.bcci.tv/news"},
-    "ICC": {"kind": "html", "listing_url": "https://www.icc-cricket.com/news"},
+    "BCCI": {
+        "kind": "html",
+        "listing_url": "https://www.bcci.tv/news",
+        "item_selector": "article a[href], a[href*='/news/']",
+    },
+    "ICC": {
+        "kind": "html",
+        "listing_url": "https://www.icc-cricket.com/news",
+        "item_selector": "article a[href], a[href*='/news/']",
+    },
+    "IPL": {
+        "kind": "html",
+        "listing_url": "https://www.iplt20.com/news",
+        "item_selector": "article a[href], a[href*='/news/']",
+    },
     "BCCI YouTube": {"kind": "youtube", "channel_id": "UCiErvZ3iVs0LnWoJBWcuK8Q"},
+    "ICC YouTube": {"kind": "youtube", "channel_id": "UCt2JXOLNxszYDuYHnmuLuJw"},
+    "NDTV Sports": {
+        "kind": "rss",
+        "feed_url": "https://feeds.feedburner.com/ndtvsports-cricket",
+    },
+    "ESPNcricinfo (India)": {
+        "kind": "rss",
+        "feed_url": "https://www.espncricinfo.com/rss/content/story/feeds/6.xml",
+    },
 }
 
-CARDS: list[tuple[str, str, str, str, str, str, str, list[str]]] = [
-    (
-        "read",
-        "international",
-        "Gill 104 keeps India in front at Perth",
-        "Shubman Gill's fifth Test hundred dragged India to 287 for 5 after a rain break.",
-        "गिल की 104 से पर्थ में भारत आगे",
-        "शुभमन गिल के पाँचवें टेस्ट शतक ने बारिश के बाद भारत को 287/5 तक पहुँचाया।",
-        "ESPNcricinfo",
-        ["India", "breaking"],
-    ),
-    (
-        "video",
-        "international",
-        "Bumrah's yorker that bent the stumps",
-        "A 147 kph yorker, late reverse, off stump cartwheeling. Official upload only.",
-        "बुमराह की यॉर्कर जिसने स्टंप मोड़ दिए",
-        "147 किमी/घंटा की यॉर्कर, देर से रिवर्स, ऑफ स्टंप उखड़ा।",
-        "BCCI",
-        ["India"],
-    ),
-    (
-        "read",
-        "domestic",
-        "Mumbai take the lead after Jaiswal's 178",
-        "Yashasvi Jaiswal batted through day two of the Ranji semi-final. Mumbai declared on 412 for 6.",
-        "जयसवाल के 178 के बाद मुंबई आगे",
-        "रणजी सेमीफ़ाइनल में जयसवाल ने पूरे दूसरे दिन खेला।",
-        "Times of India Cricket",
-        ["India"],
-    ),
-    (
-        "nxtspot",
-        "grassroots",
-        "A 16-year-old takes 7 for 9 in Palakkad",
-        "Anjali Menon took 7 for 9 in an under-19 game on a damp matting wicket.",
-        "पालक्काड़ में 16 साल के खिलाड़ी ने लिए 7 विकेट",
-        "अंजलि मेनन ने अंडर-19 मैच में 7 विकेट लिए।",
-        "Nxtspot",
-        ["Nxtspot"],
-    ),
-    (
-        "read",
-        "international",
-        "England rest Archer for the Oval ODI",
-        "Jofra Archer will skip Thursday's match after scans showed tightness in his right side.",
-        "इंग्लैंड ने ओवल वनडे से आर्चर को आराम दिया",
-        "जोफ्रा आर्चर गुरुवार का मैच छोड़ेंगे।",
-        "BBC Sport Cricket",
-        ["England"],
-    ),
-    (
-        "read",
-        "domestic",
-        "WPL: Knight Riders hold their nerve in a super over",
-        "Kolkata Knight Riders Women tied with Delhi, then won the super over by two runs.",
-        "डब्ल्यूपीएल: सुपर ओवर में नाइट राइडर्स जीतीं",
-        "बारिश वाले मैच में टाई के बाद कोलकाता ने सुपर ओवर दो रन से जीता।",
-        "ESPNcricinfo",
-        ["India"],
-    ),
-]
+SOURCE_HEALTH: dict[str, dict[str, object]] = {
+    "ESPNcricinfo": {"last_fetched_at": NOW - timedelta(minutes=4), "consecutive_failures": 0},
+    "ESPNcricinfo (India)": {
+        "last_fetched_at": NOW - timedelta(minutes=9),
+        "consecutive_failures": 0,
+    },
+    "BBC Sport Cricket": {
+        "last_fetched_at": NOW - timedelta(minutes=11),
+        "consecutive_failures": 0,
+    },
+    "Times of India Cricket": {
+        "last_fetched_at": NOW - timedelta(minutes=41),
+        "consecutive_failures": 2,
+        "last_error": "fetch failed",
+    },
+    "BCCI": {"last_fetched_at": NOW - timedelta(minutes=16), "consecutive_failures": 0},
+    "ICC": {
+        "last_fetched_at": NOW - timedelta(hours=6),
+        "consecutive_failures": 3,
+        "last_error": "paused — listing returned no items",
+        "is_active": False,
+    },
+    "IPL": {"last_fetched_at": NOW - timedelta(minutes=22), "consecutive_failures": 0},
+    "NDTV Sports": {"consecutive_failures": 0},
+    "BCCI YouTube": {"last_fetched_at": NOW - timedelta(minutes=38), "consecutive_failures": 0},
+    "ICC YouTube": {"last_fetched_at": NOW - timedelta(hours=2), "consecutive_failures": 0},
+}
+
+
+def _story_url(slug: str) -> str:
+    return f"https://www.espncricinfo.com/cricket-news/{slug}"
 
 
 def _password() -> str:
@@ -204,11 +205,19 @@ async def seed(session: AsyncSession) -> None:
                     verified_at=NOW,
                 )
             )
-        elif not (existing.adapter_config or {}).get("feed_url") and not (
-            existing.adapter_config or {}
-        ).get("listing_url"):
-            existing.adapter_config = cfg
+        else:
+            current = dict(existing.adapter_config or {})
+            for key, value in cfg.items():
+                if not current.get(key):
+                    current[key] = value
+            existing.adapter_config = current
     await session.flush()
+    for name, health in SOURCE_HEALTH.items():
+        row = await session.scalar(select(Source).where(Source.name == name))
+        if row is None:
+            continue
+        for key, value in health.items():
+            setattr(row, key, value)
 
     if await session.scalar(select(User).where(User.phone == "9876543210")) is None:
         session.add(
@@ -222,60 +231,57 @@ async def seed(session: AsyncSession) -> None:
     await session.flush()
     demo_user = await session.scalar(select(User).where(User.phone == "9876543210"))
 
-    templates = list(CARDS)
-    for i in range(60):
-        kind, category, headline, summary, hi_h, hi_s, src_name, tags = templates[
-            i % len(templates)
-        ]
-        suffix = "" if i < len(templates) else f" ({i})"
-        url = f"https://cricit.app/seed/{i}"
+    by_slug: dict[str, Post] = {}
+    for i, row in enumerate(PUBLISHED):
+        kind, category, headline, summary, hi_h, hi_s, src_name, tags, slug, img = row
+        url = _story_url(slug)
+        existing_post = await session.scalar(select(Post).where(Post.url_hash == _hash_url(url)))
+        if existing_post is not None:
+            by_slug[slug] = existing_post
+            continue
+        src = await _source(session, src_name)
+        post = Post(
+            kind=kind,
+            status="published",
+            category=category,
+            headline=headline[:160],
+            summary=summary,
+            headline_hi=hi_h,
+            summary_hi=hi_s,
+            image_url=IMAGES[img],
+            original_url=url,
+            url_hash=_hash_url(url),
+            source_id=src.id,
+            author_credit=src_name,
+            tags=tags,
+            prompt_version="summarize_v1",
+            published_at=NOW - timedelta(minutes=12 + i * 11),
+        )
+        session.add(post)
+        by_slug[slug] = post
+    await session.flush()
+
+    for headline, summary, src_name, category, kind, slug, dup_slug in REVIEW:
+        url = _story_url(f"review/{slug}")
         if await session.scalar(select(Post).where(Post.url_hash == _hash_url(url))):
             continue
         src = await _source(session, src_name)
+        dup = by_slug.get(dup_slug) if dup_slug else None
         session.add(
             Post(
                 kind=kind,
-                status="published",
-                category=category,
-                headline=(headline + suffix)[:160],
-                summary=summary,
-                headline_hi=hi_h,
-                summary_hi=hi_s,
-                original_url=url,
-                url_hash=_hash_url(url),
-                source_id=src.id,
-                video_id="dQw4w9wgGcQ" if kind == "video" else None,
-                author_credit=src_name,
-                tags=tags,
-                prompt_version="summarize_v1",
-                published_at=NOW - timedelta(minutes=18 + i * 7),
-            )
-        )
-
-    for i, headline in enumerate(
-        (
-            "Draft: Rohit rests the new ball for Vizag",
-            "Draft: Delhi pitch report before the pink-ball Test",
-            "Draft: Under-19 spinner from Ranchi on Nxtspot",
-        )
-    ):
-        url = f"https://cricit.app/seed/review/{i}"
-        if await session.scalar(select(Post).where(Post.url_hash == _hash_url(url))):
-            continue
-        src = await _source(session, "ESPNcricinfo" if i < 2 else "Nxtspot")
-        session.add(
-            Post(
-                kind="nxtspot" if i == 2 else "read",
                 status="review",
-                category="domestic" if i != 2 else "grassroots",
-                headline=headline,
-                summary="Waiting on an editor. Numbers checked; photo still in review.",
+                category=category,
+                headline=headline[:160],
+                summary=summary,
                 original_url=url,
                 url_hash=_hash_url(url),
                 source_id=src.id,
+                possible_duplicate_of=dup.id if dup is not None else None,
                 author_credit=src.name,
-                tags=["India"],
+                tags=["India"] if category != "grassroots" else ["Nxtspot"],
                 prompt_version="summarize_v1",
+                image_url=IMAGES[1],
             )
         )
 
@@ -306,7 +312,56 @@ async def seed(session: AsyncSession) -> None:
                 start_at=NOW - timedelta(days=2),
                 end_at=NOW + timedelta(days=14),
                 frequency=8,
+                daily_cap=4000,
                 is_active=True,
+            )
+        )
+    if not await session.scalar(
+        select(AdCampaign).where(AdCampaign.advertiser == "Pitchside Cover")
+    ):
+        session.add(
+            AdCampaign(
+                advertiser="Pitchside Cover",
+                format="sponsored_card",
+                creative_url="https://cdn.cricit.app/ads/pitchside.png",
+                click_url="https://example.com/pitchside",
+                title="Insure the season, not just the match",
+                body="Direct-sold card. Sits in every sixth slot on My feed.",
+                start_at=NOW - timedelta(days=3),
+                end_at=NOW + timedelta(days=45),
+                frequency=6,
+                daily_cap=8000,
+                is_active=True,
+            )
+        )
+    if not await session.scalar(select(AdCampaign).where(AdCampaign.advertiser == "ClubKit Co")):
+        session.add(
+            AdCampaign(
+                advertiser="ClubKit Co",
+                format="footer",
+                creative_url="https://cdn.cricit.app/ads/clubkit.png",
+                click_url="https://example.com/clubkit",
+                title="Match whites that survive red soil",
+                start_at=NOW - timedelta(days=5),
+                end_at=NOW + timedelta(days=21),
+                frequency=8,
+                daily_cap=2500,
+                is_active=True,
+            )
+        )
+    if not await session.scalar(select(AdCampaign).where(AdCampaign.advertiser == "Monsoon Nets")):
+        session.add(
+            AdCampaign(
+                advertiser="Monsoon Nets",
+                format="full_page",
+                creative_url="https://cdn.cricit.app/ads/monsoon.png",
+                click_url="https://example.com/monsoon",
+                title="Indoor nets — June campaign (ended)",
+                start_at=NOW - timedelta(days=90),
+                end_at=NOW - timedelta(days=20),
+                frequency=10,
+                daily_cap=1000,
+                is_active=False,
             )
         )
 
@@ -339,28 +394,114 @@ async def seed(session: AsyncSession) -> None:
                 status="new",
             )
         )
+    for name, location, text, status in (
+        (
+            "Meera Sharma",
+            "Jorhat, Assam",
+            "164 off 88 in a 30-over school game. Fourteen sixes. Scorebook photo attached.",
+            "published",
+        ),
+        (
+            "Linthoi Devi",
+            "Imphal, Manipur",
+            "3 for 19 as Manipur women beat Nagaland by 41. First state T20 win.",
+            "new",
+        ),
+        (
+            "S. Kumar",
+            "Unknown",
+            "Buy followers cheap. WhatsApp this number.",
+            "rejected",
+        ),
+    ):
+        if (
+            await session.scalar(
+                select(NxtspotSubmission).where(NxtspotSubmission.submitter_name == name)
+            )
+            is None
+        ):
+            session.add(
+                NxtspotSubmission(
+                    submitter_name=name,
+                    location=location,
+                    raw_text=text,
+                    status=status,
+                )
+            )
 
-    if await session.scalar(select(AiJob).where(AiJob.prompt_version == "summarize_v1")) is None:
+    job_count = int(await session.scalar(select(func.count()).select_from(AiJob)) or 0)
+    if job_count < 6:
+        for tokens_in, tokens_out, cost, status in (
+            (420, 90, 0.12, "ok"),
+            (510, 88, 0.14, "ok"),
+            (380, 70, 0.09, "ok"),
+            (640, 110, 0.18, "ok"),
+            (290, 40, 0.06, "invalid"),
+            (800, 130, 0.22, "ok"),
+        ):
+            session.add(
+                AiJob(
+                    model="claude-sonnet",
+                    prompt_version="summarize_v1",
+                    input_tokens=tokens_in,
+                    output_tokens=tokens_out,
+                    cost_inr=cost,
+                    status=status,
+                )
+            )
+
+    await session.flush()
+    today = NOW.date()
+    published_rows = list(
+        (await session.scalars(select(Post).where(Post.status == "published"))).all()
+    )
+    for i, post in enumerate(published_rows):
+        exists = await session.get(PostStatsDaily, {"post_id": post.id, "day": today})
+        if exists is not None:
+            continue
         session.add(
-            AiJob(
-                model="claude-sonnet",
-                prompt_version="summarize_v1",
-                input_tokens=420,
-                output_tokens=90,
-                cost_inr=0.12,
-                status="ok",
+            PostStatsDaily(
+                post_id=post.id,
+                day=today,
+                views=420 + i * 37,
+                opens=80 + i * 9,
+                shares=4 + (i % 7),
+                bookmarks=2 + (i % 5),
+            )
+        )
+    for campaign in (await session.scalars(select(AdCampaign))).all():
+        exists = await session.get(AdStatsDaily, {"campaign_id": campaign.id, "day": today})
+        if exists is not None:
+            continue
+        session.add(
+            AdStatsDaily(
+                campaign_id=campaign.id,
+                day=today,
+                impressions=12000 if campaign.is_active else 0,
+                clicks=180 if campaign.is_active else 0,
             )
         )
 
-    if await session.scalar(select(AuditLog).where(AuditLog.action == "seed.ok")) is None:
+    for action, entity, note in (
+        ("seed.ok", "system", "Showcase seed"),
+        ("admin.login", "admin", "Owner signed in from the newsroom"),
+        ("posts.publish", "post", "Published Gill 104 keeps India in front at Perth"),
+        ("posts.reject", "post", "Rejected a spam Nxtspot tip"),
+        ("sources.pause", "source", "Paused ICC after empty listing"),
+        ("ads.create", "ad", "Pitchside Cover sponsored card"),
+    ):
+        if await session.scalar(
+            select(AuditLog).where(AuditLog.action == action, AuditLog.note == note)
+        ):
+            continue
         session.add(
             AuditLog(
                 admin_id=admin.id,
-                action="seed.ok",
-                entity="system",
-                diff={"posts": 60, "sources": len(SOURCES)},
-                ts=NOW,
-                note="Showcase seed",
+                action=action,
+                entity=entity,
+                diff={},
+                ts=NOW - timedelta(minutes=15),
+                note=note,
             )
         )
     await session.commit()

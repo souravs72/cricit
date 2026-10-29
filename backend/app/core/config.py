@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
 
     feed_page_size: int = Field(default=20, ge=5, le=50)
+    ad_every_n_cards: int = Field(default=6, ge=0, le=50)
+    nxtspot_every_n_cards: int = Field(default=8, ge=0, le=50)
+    feed_cache_pages: int = Field(default=3, ge=1, le=10)
+    feed_cache_ttl_s: int = Field(default=60, ge=10, le=3600)
 
     @model_validator(mode="after")
     def _require_secrets_outside_local(self) -> "Settings":

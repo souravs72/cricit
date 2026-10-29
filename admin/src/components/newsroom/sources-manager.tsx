@@ -72,7 +72,7 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
     try {
       const body = sourceCreatePayload({
         name: String(form.get("name") ?? ""),
-        adapter: (form.get("adapter") as "rss" | "html") ?? "rss",
+        adapter: (form.get("adapter") as "rss" | "html" | "sitemap") ?? "rss",
         feed_url: String(form.get("feed_url") ?? ""),
         default_category:
           (form.get("default_category") as "international" | "domestic" | "grassroots") ??
@@ -97,7 +97,8 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
         <div className="space-y-2 md:col-span-2">
           <p className="font-medium">Add a source</p>
           <p className="text-sm text-muted-foreground">
-            RSS only fetches headlines and a short teaser. We never store the article body.
+            RSS, HTML listings and news sitemaps fetch headlines and a short teaser. We
+            never store the article body.
           </p>
         </div>
         <div className="space-y-2">
@@ -114,6 +115,7 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
           >
             <option value="rss">RSS</option>
             <option value="html">HTML listing</option>
+            <option value="sitemap">News sitemap</option>
           </select>
         </div>
         <div className="space-y-2 md:col-span-2">
@@ -166,7 +168,7 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
       {rows.length === 0 ? (
         <EmptyState
           title="No sources yet."
-          body="The T01 list is in docs/sources.md. Seed loads ESPNcricinfo, BBC, TOI, BCCI, ICC, Nxtspot and BCCI YouTube."
+          body="The T01 list is in docs/sources.md. Seed loads ESPNcricinfo, BBC, TOI, BCCI, ICC, IPL, NDTV, Nxtspot and official YouTube channels."
         />
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
@@ -221,7 +223,10 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
                       <Button
                         size="sm"
                         variant="secondary"
-                        disabled={busy === `test-${row.id}` || row.adapter !== "rss"}
+                        disabled={
+                          busy === `test-${row.id}` ||
+                          !["rss", "html", "sitemap"].includes(row.adapter ?? "")
+                        }
                         onClick={() => testFetch(row)}
                       >
                         Test fetch

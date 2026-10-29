@@ -62,6 +62,11 @@ export function PostsTable({
                 {row.summary ? (
                   <p className="mt-1 text-sm font-normal text-muted-foreground">{row.summary}</p>
                 ) : null}
+                {row.duplicate_headline ? (
+                  <p className="mt-1 text-xs text-amber-800 dark:text-amber-400">
+                    Possible duplicate of: {row.duplicate_headline}
+                  </p>
+                ) : null}
               </TableCell>
               <TableCell>
                 <Badge variant="outline">{row.kind}</Badge>

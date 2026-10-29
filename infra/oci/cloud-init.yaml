@@ -1,0 +1,22 @@
+#cloud-config
+# Paste into Oracle Compute → Create instance → Advanced → Initialization script.
+# Image: Canonical Ubuntu 24.04 (aarch64). Shape: VM.Standard.A1.Flex, 4 OCPU, 24 GB RAM.
+
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - rsync
+  - curl
+  - iptables-persistent
+  - openssl
+
+runcmd:
+  - systemctl enable --now docker
+  - iptables -I INPUT -m state --state NEW -p tcp --dport 80 -j ACCEPT
+  - iptables -I INPUT -m state --state NEW -p tcp --dport 443 -j ACCEPT
+  - netfilter-persistent save
+  - mkdir -p /opt/cricit
+  - chown ubuntu:ubuntu /opt/cricit
+  - usermod -aG docker ubuntu
+  - [ bash, -c, "grep -q /swapfile /etc/fstab || (fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab)" ]

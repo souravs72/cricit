@@ -20,7 +20,7 @@ export function publicHttpUrl(value: string): string | null {
 
 export type SourceForm = {
   name: string;
-  adapter: "rss" | "html" | "youtube";
+  adapter: "rss" | "html" | "sitemap" | "youtube";
   feed_url: string;
   default_category: "international" | "domestic" | "grassroots";
   trust_level: "auto" | "review";
@@ -49,6 +49,17 @@ export function sourceCreatePayload(form: SourceForm) {
       type: "news" as const,
       adapter: "html" as const,
       adapter_config: { listing_url: url },
+      default_category: form.default_category,
+      trust_level: form.trust_level,
+    };
+  }
+  if (form.adapter === "sitemap") {
+    if (!url) throw new Error("Sitemap URL must be a public http(s) address.");
+    return {
+      name: form.name.trim(),
+      type: "news" as const,
+      adapter: "sitemap" as const,
+      adapter_config: { sitemap_url: url },
       default_category: form.default_category,
       trust_level: form.trust_level,
     };

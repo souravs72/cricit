@@ -66,7 +66,14 @@ class AppSettings {
       onboarded: prefs.getBool(_onboarded) ?? false,
       signedIn: prefs.getBool(_signedIn) ?? false,
       displayName: prefs.getString(_name) ?? '',
-      bookmarks: {...(prefs.getStringList(_bookmarks) ?? const [])},
+      bookmarks: {
+        ...(prefs.getStringList(_bookmarks) ??
+            const [
+              '0192f1a0-0000-7000-8000-000000000001',
+              '0192f1a0-0000-7000-8000-000000000004',
+              '0192f1a0-0000-7000-8000-000000000011',
+            ]),
+      },
     );
   }
 }

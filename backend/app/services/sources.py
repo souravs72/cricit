@@ -14,7 +14,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import Conflict, NotBuiltYet, NotFound
-from app.ingestion.adapters.rss import RssAdapter
+from app.ingestion.adapters import adapter_for
 from app.ingestion.ssrf import assert_safe_to_fetch
 from app.models import Source
 from app.repositories import audit as audit_repo
@@ -109,14 +109,15 @@ async def test_fetch(db: AsyncSession, source_id: UUID) -> TestFetchOut:
     row = await sources_repo.get(db, source_id)
     if row is None:
         raise NotFound("Source not found")
-    if row.adapter != "rss":
-        raise NotBuiltYet("Test fetch for this adapter is T11 or T17")
+    adapter = adapter_for(row.adapter)
+    if adapter is None:
+        raise NotBuiltYet("Test fetch for this adapter is T17")
     cfg = dict(row.adapter_config or {})
-    feed_url = cfg.get("feed_url")
-    if not isinstance(feed_url, str):
-        raise NotFound("This source has no feed URL")
-    assert_safe_to_fetch(feed_url, field="feed_url")
-    result = await RssAdapter().fetch(cfg, etag=None, last_modified=None)
+    target = cfg.get("feed_url") or cfg.get("listing_url") or cfg.get("sitemap_url")
+    if not isinstance(target, str):
+        raise NotFound("This source has no fetch URL")
+    assert_safe_to_fetch(target, field="url")
+    result = await adapter.fetch(cfg, etag=None, last_modified=None)
     items = [
         TestFetchItem(url=item.url, title=item.title, published_at=item.published_at)
         for item in result.items[:10]

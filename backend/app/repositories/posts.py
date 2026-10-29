@@ -1,12 +1,13 @@
 """All SQL for posts lives here."""
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Post, PostSource
+from app.models import Post, PostSource, PostStatsDaily
 
 
 async def list_by_status(
@@ -90,9 +91,57 @@ async def get(session: AsyncSession, post_id: uuid.UUID) -> Post | None:
     return await session.get(Post, post_id)
 
 
+async def get_many(session: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.UUID, Post]:
+    if not ids:
+        return {}
+    stmt = select(Post).where(Post.id.in_(ids))
+    return {row.id: row for row in (await session.scalars(stmt)).all()}
+
+
 async def count_status(session: AsyncSession, status: str) -> int:
     return int(
         await session.scalar(select(func.count()).select_from(Post).where(Post.status == status))
+        or 0
+    )
+
+
+async def add_daily_stats(
+    session: AsyncSession,
+    post_id: uuid.UUID,
+    day: date,
+    *,
+    views: int = 0,
+    opens: int = 0,
+    shares: int = 0,
+    bookmarks: int = 0,
+) -> None:
+    stmt = pg_insert(PostStatsDaily).values(
+        post_id=post_id,
+        day=day,
+        views=views,
+        opens=opens,
+        shares=shares,
+        bookmarks=bookmarks,
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["post_id", "day"],
+        set_={
+            "views": PostStatsDaily.views + stmt.excluded.views,
+            "opens": PostStatsDaily.opens + stmt.excluded.opens,
+            "shares": PostStatsDaily.shares + stmt.excluded.shares,
+            "bookmarks": PostStatsDaily.bookmarks + stmt.excluded.bookmarks,
+        },
+    )
+    await session.execute(stmt)
+
+
+async def views_on_day(session: AsyncSession, day: date) -> int:
+    return int(
+        await session.scalar(
+            select(func.coalesce(func.sum(PostStatsDaily.views), 0)).where(
+                PostStatsDaily.day == day
+            )
+        )
         or 0
     )
 
@@ -115,6 +164,8 @@ async def list_published(
     kind: str | None,
     after: tuple[datetime, uuid.UUID] | None,
     limit: int,
+    exclude_kinds: tuple[str, ...] | None = None,
+    exclude_categories: tuple[str, ...] | None = None,
 ) -> list[Post]:
     """Newest first, keyset-paginated on (published_at, id) so inserts never shift pages."""
     stmt = select(Post).where(Post.status == "published")
@@ -122,6 +173,10 @@ async def list_published(
         stmt = stmt.where(Post.category == category)
     if kind:
         stmt = stmt.where(Post.kind == kind)
+    if exclude_kinds:
+        stmt = stmt.where(Post.kind.notin_(exclude_kinds))
+    if exclude_categories:
+        stmt = stmt.where(Post.category.notin_(exclude_categories))
     if after:
         ts, pid = after
         stmt = stmt.where(or_(Post.published_at < ts, and_(Post.published_at == ts, Post.id < pid)))

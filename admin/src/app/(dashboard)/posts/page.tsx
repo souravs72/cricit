@@ -30,7 +30,7 @@ export default async function PostsPage({
       <PostsTable
         rows={data ?? []}
         emptyTitle="No posts yet."
-        emptyBody="Run make seed locally to load sixty published cards and three in review."
+        emptyBody="Run make seed locally to load unique published cards, review drafts and possible duplicates."
       />
     </NewsroomShell>
   );

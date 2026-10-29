@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
-from app.models import Post, Source
+from app.models import AiJob, Post, Source
 from app.repositories import ads as ads_repo
 from app.repositories import audit as audit_repo
 from app.repositories import nxtspot as nxtspot_repo
@@ -46,9 +47,12 @@ def source_out(row: Source) -> SourceOut:
     )
 
 
-def post_item(row: Post) -> PostListItem:
+def post_item(row: Post, *, duplicate_headline: str | None = None) -> PostListItem:
     """Map a Post ORM row. Callers: list_posts, list_review, services.posts."""
-    return PostListItem.model_validate(row, from_attributes=True)
+    item = PostListItem.model_validate(row, from_attributes=True)
+    if duplicate_headline:
+        return item.model_copy(update={"duplicate_headline": duplicate_headline})
+    return item
 
 
 async def list_sources(db: AsyncSession) -> list[SourceOut]:
@@ -62,11 +66,36 @@ async def list_posts(
 
 
 async def list_review(db: AsyncSession) -> list[PostListItem]:
-    return [post_item(p) for p in await posts_repo.list_by_status(db, status="review")]
+    rows = await posts_repo.list_by_status(db, status="review")
+    others = await posts_repo.get_many(
+        db, [p.possible_duplicate_of for p in rows if p.possible_duplicate_of]
+    )
+    return [
+        post_item(
+            p,
+            duplicate_headline=(
+                others[p.possible_duplicate_of].headline
+                if p.possible_duplicate_of and p.possible_duplicate_of in others
+                else None
+            ),
+        )
+        for p in rows
+    ]
 
 
 async def list_ads(db: AsyncSession) -> list[AdOut]:
-    return [AdOut.model_validate(a, from_attributes=True) for a in await ads_repo.list_all(db)]
+    today = datetime.now(UTC).date()
+    stats = await ads_repo.stats_on_day(db, today)
+    out: list[AdOut] = []
+    for row in await ads_repo.list_all(db):
+        item = AdOut.model_validate(row, from_attributes=True)
+        day = stats.get(row.id)
+        if day is not None:
+            item = item.model_copy(
+                update={"impressions_today": day.impressions, "clicks_today": day.clicks}
+            )
+        out.append(item)
+    return out
 
 
 async def list_audit(db: AsyncSession) -> list[AuditOut]:
@@ -79,11 +108,15 @@ async def overview(db: AsyncSession) -> OverviewStats:
     today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     published = await posts_repo.count_published_since(db, today)
     waiting = await posts_repo.count_status(db, "review")
+    readers = await posts_repo.views_on_day(db, today.date())
+    cost = await db.scalar(
+        select(func.coalesce(func.sum(AiJob.cost_inr), 0)).where(AiJob.created_at >= today)
+    )
     return OverviewStats(
         cards_published_today=published,
         waiting_for_review=waiting,
-        readers_today=0,
-        ai_cost_today="₹0",
+        readers_today=readers,
+        ai_cost_today=f"₹{float(cost or 0):.2f}",
         review=await list_review(db),
         sources=await list_sources(db),
     )

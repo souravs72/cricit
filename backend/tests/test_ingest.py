@@ -11,6 +11,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
+from app.ingestion.adapters.base import RawItem
 from app.ingestion.adapters.rss import RssAdapter
 from app.ingestion.dedupe import Candidate, url_hash
 from app.models import Source
@@ -172,11 +173,52 @@ def test_due_when_never_fetched_or_interval_elapsed() -> None:
     stale = _source(last_fetched_at=NOW - timedelta(minutes=11))
     paused = _source(is_active=False, last_fetched_at=None)
     html = _source(adapter="html", last_fetched_at=None)
+    youtube = _source(adapter="youtube", last_fetched_at=None)
     assert is_due(fresh, now=NOW)
     assert not is_due(recent, now=NOW)
     assert is_due(stale, now=NOW)
     assert not is_due(paused, now=NOW)
-    assert not is_due(html, now=NOW)
+    assert is_due(html, now=NOW)
+    assert not is_due(youtube, now=NOW)
+
+
+def test_beat_vs_lose_is_possible_not_merged() -> None:
+    existing_id = uuid4()
+    item = RawItem(
+        url="https://www.espncricinfo.com/story/lose",
+        title="India lose to Australia in Perth Test",
+        published_at=NOW,
+    )
+    planned = plan_items(
+        _source(),
+        [item],
+        known_hashes=set(),
+        recent=[(existing_id, Candidate("India beat Australia in Perth Test", NOW))],
+        now=NOW,
+    )
+    assert len(planned) == 1
+    assert planned[0].merge_into is None
+    assert planned[0].possible_duplicate_of == existing_id
+    assert planned[0].status == "review"
+
+
+def test_different_numbers_never_auto_merged() -> None:
+    existing_id = uuid4()
+    item = RawItem(
+        url="https://www.espncricinfo.com/story/4th",
+        title="India beat Australia by 4 wickets in 4th ODI",
+        published_at=NOW,
+    )
+    planned = plan_items(
+        _source(),
+        [item],
+        known_hashes=set(),
+        recent=[
+            (existing_id, Candidate("India beat Australia by 6 wickets in 3rd ODI", NOW)),
+        ],
+        now=NOW,
+    )
+    assert planned[0].merge_into is None
 
 
 @pytest.mark.asyncio

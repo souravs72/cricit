@@ -68,6 +68,9 @@ class Post(IdMixin, TimestampMixin, Base):
     source_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("sources.id", ondelete="SET NULL")
     )
+    possible_duplicate_of: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("posts.id", ondelete="SET NULL")
+    )
     video_id: Mapped[str | None] = mapped_column(String(20))
     author_credit: Mapped[str | None] = mapped_column(String(200))
     tags: Mapped[list[str]] = mapped_column(ARRAY(String(60)), default=list)

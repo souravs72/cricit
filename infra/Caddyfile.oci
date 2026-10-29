@@ -1,0 +1,14 @@
+# Direct Let's Encrypt (no Cloudflare). Hostnames come from container env.
+{
+	email {$CRICIT_TLS_EMAIL}
+}
+
+{$CRICIT_API_HOST} {
+	encode zstd gzip
+	reverse_proxy api:8000
+}
+
+{$CRICIT_ADMIN_HOST} {
+	encode zstd gzip
+	reverse_proxy admin:3000
+}

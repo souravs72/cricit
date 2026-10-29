@@ -71,6 +71,7 @@ class _TabFeed extends ConsumerStatefulWidget {
 class _TabFeedState extends ConsumerState<_TabFeed> {
   final _page = PageController();
   final _hindiOverride = <String, bool>{};
+  var _reportedInitialView = false;
 
   @override
   void dispose() {
@@ -95,15 +96,22 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
     final ctrl = ref.read(feedControllerProvider(widget.tab).notifier);
     final settings = ref.watch(settingsProvider);
 
-    if (widget.openCardId != null && snap.cards.isNotEmpty) {
-      final i = snap.cards.indexWhere((c) => c.id == widget.openCardId);
-      if (i >= 0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_page.hasClients) {
+    if (snap.status != FeedStatus.data) {
+      _reportedInitialView = false;
+    } else if (!_reportedInitialView && snap.cards.isNotEmpty) {
+      _reportedInitialView = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final openId = widget.openCardId;
+        if (openId != null) {
+          final i = snap.cards.indexWhere((c) => c.id == openId);
+          if (i >= 0 && _page.hasClients) {
             _page.jumpToPage(i);
+            return;
           }
-        });
-      }
+        }
+        ctrl.onPageChanged(0);
+      });
     }
 
     Widget body;

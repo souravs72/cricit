@@ -5,7 +5,7 @@ import type { Overview, PostRow } from "@/lib/newsroom";
 
 export const metadata: Metadata = { title: "Analytics" };
 
-/** GET /admin/v1/stats/overview + /posts. Readers/cost stay 0 until T26 counters. */
+/** GET /admin/v1/stats/overview + /posts. Readers today is views rolled up from /v1/events. */
 
 export default async function AnalyticsPage() {
   const stats = await loadOrLogin<Overview>("/admin/v1/stats/overview");
@@ -17,7 +17,7 @@ export default async function AnalyticsPage() {
   return (
     <NewsroomShell
       title="Analytics"
-      description="Counts from the database. Reader totals stay at zero until Redis counters land in T26 — we do not invent traffic."
+      description="Counts from the database. Readers today is views from /v1/events, rolled up hourly into daily counters."
       error={error}
     >
       <dl className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card md:grid-cols-4">
@@ -30,6 +30,19 @@ export default async function AnalyticsPage() {
         <Breakdown title="By kind" items={byKind} />
         <Breakdown title="By category" items={byCategory} />
       </div>
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold">Recent cards</h2>
+        <ul className="mt-3 divide-y rounded-xl border bg-card">
+          {rows.slice(0, 12).map((row) => (
+            <li key={row.id} className="flex justify-between gap-4 px-5 py-3 text-sm">
+              <span className="font-medium">{row.headline}</span>
+              <span className="shrink-0 text-muted-foreground">
+                {row.kind} · {row.status}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
     </NewsroomShell>
   );
 }

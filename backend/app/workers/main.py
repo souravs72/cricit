@@ -13,12 +13,14 @@ from arq.connections import RedisSettings
 from app.core.config import get_settings
 from app.core.db import get_sessionmaker
 from app.core.logging import configure_logging
+from app.core.redis import get_redis
 from app.repositories import sources as sources_repo
+from app.services import events as events_service
 from app.services.ingest import fetch_and_store, is_due, job_id_for
 
 
 async def fetch_source(ctx: dict[str, Any], source_id: str) -> dict[str, Any]:
-    """Fetch one RSS source. Job id is source+interval slot so retries collapse."""
+    """Fetch one RSS/HTML/sitemap source. Job id is source+interval slot so retries collapse."""
     del ctx
     async with get_sessionmaker()() as db:
         result = await fetch_and_store(db, UUID(source_id))
@@ -26,10 +28,10 @@ async def fetch_source(ctx: dict[str, Any], source_id: str) -> dict[str, Any]:
 
 
 async def fetch_due_sources(ctx: dict[str, Any]) -> None:
-    """Enqueue one fetch_source job per due RSS source (id = source+interval slot)."""
+    """Enqueue one fetch_source job per due RSS/HTML/sitemap source."""
     now = datetime.now(UTC)
     async with get_sessionmaker()() as db:
-        sources = await sources_repo.list_active_rss(db)
+        sources = await sources_repo.list_active_fetchable(db)
     redis = ctx.get("redis")
     for source in sources:
         if not is_due(source, now=now):
@@ -46,7 +48,10 @@ async def fetch_youtube(ctx: dict[str, Any]) -> None:
 
 
 async def rollup_stats(ctx: dict[str, Any]) -> None:
-    """T26: move Redis counters into post_stats_daily / ad_stats_daily."""
+    """Move Redis counters into post_stats_daily / ad_stats_daily. Safe to run twice."""
+    del ctx
+    async with get_sessionmaker()() as db:
+        await events_service.rollup(db, get_redis())
 
 
 async def nightly_housekeeping(ctx: dict[str, Any]) -> None:

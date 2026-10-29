@@ -26,6 +26,30 @@ const EXAMPLES = [
     audience: "Nxtspot followers",
     when: "Would send at 21:00 IST",
   },
+  {
+    title: "Bumrah back to number one",
+    body: "ICC Test bowling rankings after Perth.",
+    audience: "International tab",
+    when: "Would send at 10:15 IST",
+  },
+  {
+    title: "RCB retain Kohli",
+    body: "Green and Patidar stay. Auction still short a death bowler.",
+    audience: "Domestic + IPL",
+    when: "Would send at 19:05 IST",
+  },
+  {
+    title: "Jorhat school batter: 164 off 88",
+    body: "Meera Sharma’s fourteen sixes, first on Nxtspot.",
+    audience: "Nxtspot followers",
+    when: "Would send at 20:40 IST",
+  },
+  {
+    title: "WPL super over: Knight Riders hold on",
+    body: "Mandhana’s 62, then two runs in the super over.",
+    audience: "Readers who follow WPL",
+    when: "Would send at 22:10 IST",
+  },
 ];
 
 export default function PushPage() {
