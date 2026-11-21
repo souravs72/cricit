@@ -9,6 +9,6 @@
 - [x] 7. Update widget tests in `mobile/test/video_short_view_test.dart` to verify full-bleed rendering and mode toggle.
 - [x] 8. Verify with `flutter test` (all 16 tests pass) and `flutter analyze` (0 warnings).
 - [x] 9. Build release web bundle and release Android APK (`cricit-dev-release.apk`).
-- [ ] 10. Commit & push changes via GitHub `main` branch.
-- [ ] 11. Trigger remote deployment via `infra/oci/deploy.sh` (git pull origin main on production server `137.23.51.182`).
-- [ ] 12. Upload and verify updated APK is downloadable at `http://137.23.51.182/app/cricit.apk`.
+- [x] 10. Commit & push changes via GitHub `main` branch.
+- [x] 11. Trigger remote deployment via `infra/oci/deploy.sh` (git pull origin main on production server `137.23.51.182`).
+- [x] 12. Upload and verify updated APK is downloadable at `http://137.23.51.182/app/cricit.apk`.
