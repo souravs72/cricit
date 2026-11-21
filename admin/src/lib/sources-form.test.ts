@@ -1,4 +1,4 @@
-/** vitest. Callers: npm test. Module: sources-form. User: "Check what is tobe built now into this - build it" */
+/** vitest. Callers: npm test. Module: sources-form. */
 
 import { describe, expect, it } from "vitest";
 import { publicHttpUrl, sourceCreatePayload } from "./sources-form";
@@ -53,5 +53,31 @@ describe("sourceCreatePayload", () => {
     expect(body.adapter_config).toEqual({
       sitemap_url: "https://www.bcci.tv/news-sitemap.xml",
     });
+  });
+
+  it("builds a youtube create body", () => {
+    const body = sourceCreatePayload({
+      name: "Cricbuzz Shorts",
+      adapter: "youtube",
+      feed_url: "@cricbuzz",
+      default_category: "domestic",
+      trust_level: "auto",
+    });
+    expect(body.adapter).toBe("youtube");
+    expect(body.type).toBe("youtube_channel");
+    expect(body.adapter_config).toEqual({ handle: "@cricbuzz" });
+  });
+
+  it("builds a twitter/x create body", () => {
+    const body = sourceCreatePayload({
+      name: "BCCI on X",
+      adapter: "x",
+      feed_url: "https://x.com/BCCI",
+      default_category: "domestic",
+      trust_level: "auto",
+    });
+    expect(body.adapter).toBe("x");
+    expect(body.type).toBe("x");
+    expect(body.adapter_config).toEqual({ handle: "BCCI" });
   });
 });

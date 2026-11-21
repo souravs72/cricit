@@ -39,9 +39,22 @@ def create_app() -> FastAPI:
         redoc_url=None,
     )
     app.add_middleware(SecurityHeadersMiddleware)
+    origins = [settings.admin_origin]
+    origin_regex = None
+    if settings.env in {"local", "test"}:
+        origins.extend(
+            [
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+            ]
+        )
+        origin_regex = r"https://.*\.trycloudflare\.com"
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.admin_origin],
+        allow_origins=origins,
+        allow_origin_regex=origin_regex,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],

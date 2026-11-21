@@ -30,3 +30,24 @@ class AdminTotpIn(BaseModel):
 class AdminChallenge(BaseModel):
     challenge_id: str
     method: str = "totp"
+
+
+class SendOtpIn(BaseModel):
+    phone: str = Field(pattern=r"^\d{7,15}$")
+    channel: str = "ntfy"
+
+
+class SendOtpOut(BaseModel):
+    success: bool
+    phone: str
+    channel: str
+    channel_url: str
+    expires_in: int
+    message: str
+
+
+class VerifyOtpIn(BaseModel):
+    phone: str = Field(pattern=r"^\d{7,15}$")
+    code: str = Field(min_length=6, max_length=6)
+    device_id: str | None = None
+

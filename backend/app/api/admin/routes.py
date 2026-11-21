@@ -1,6 +1,6 @@
 """Admin API (/admin/v1). Never cached. Every write must also write to audit_log (T06+)."""
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
@@ -13,11 +13,25 @@ from app.core.permissions import Permission
 from app.core.redis import get_redis
 from app.core.security import TokenClaims
 from app.schemas.auth import AdminChallenge, AdminLoginIn, AdminTotpIn, TokenPair
-from app.schemas.newsroom import AdOut, AuditOut, NxtspotOut, OverviewStats, PostListItem, SourceOut
+from app.schemas.newsroom import (
+    AdOut,
+    AuditOut,
+    CurateIn,
+    CurateOut,
+    NxtspotOut,
+    OverviewStats,
+    PostCreateIn,
+    PostListItem,
+    PostUpdateIn,
+    SourceOut,
+)
+from app.schemas.settings import AppSettingsRead, AppSettingsUpdate, TestLlmRequest, TestLlmResponse
 from app.schemas.sources import SourceCreate, SourcePatch, TestFetchOut
+from app.repositories import audit as audit_repo
 from app.services import admin_auth as admin_auth_service
 from app.services import newsroom as newsroom_service
 from app.services import posts as posts_service
+from app.services import settings as settings_service
 from app.services import sources as sources_service
 
 router = APIRouter(prefix="/admin/v1")
@@ -25,6 +39,15 @@ router = APIRouter(prefix="/admin/v1")
 
 def _ip(request: Request) -> str | None:
     return request.client.host if request.client else None
+
+
+def _admin_uuid(sub: str) -> UUID:
+    try:
+        return UUID(sub)
+    except ValueError:
+        from uuid import NAMESPACE_DNS, uuid5
+
+        return uuid5(NAMESPACE_DNS, sub)
 
 
 @router.post("/auth/login", response_model=AdminChallenge, dependencies=[Depends(public)])
@@ -109,6 +132,66 @@ async def test_source(
     return await sources_service.test_fetch(session, source_id)
 
 
+@router.post("/sources/{source_id}/ingest")
+async def ingest_source(
+    source_id: UUID,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.SOURCES_MANAGE)),  # noqa: B008
+) -> dict[str, Any]:
+    from app.repositories import audit as audit_repo
+    from app.services.ingest import fetch_and_store
+
+    res = await fetch_and_store(session, source_id, enrich_with_ai=True)
+    await audit_repo.write(
+        session,
+        action="source.ingest",
+        entity="source",
+        entity_id=str(source_id),
+        admin_id=_admin_uuid(claims.sub),
+        diff={"created": res.get("created"), "merged": res.get("merged")},
+        ip=_ip(request),
+    )
+    await session.commit()
+    return res
+
+
+@router.post("/ingest/run")
+async def run_ingestion(
+    request: Request,
+    claims: TokenClaims = Depends(require(Permission.SOURCES_MANAGE)),  # noqa: B008
+    force: bool = False,
+) -> dict[str, Any]:
+    from app.core.db import get_sessionmaker
+    from app.repositories import audit as audit_repo
+    from app.services.continuous_ingest import engine
+
+    maker = get_sessionmaker()
+    res = await engine.run_once(maker, force_all=force, enrich_with_ai=True)
+    async with maker() as session:
+        await audit_repo.write(
+            session,
+            action="ingest.run_all",
+            entity="ingest_engine",
+            entity_id="global",
+            admin_id=_admin_uuid(claims.sub),
+            diff=res,
+            ip=_ip(request),
+        )
+        await session.commit()
+    return res
+
+
+@router.get("/ingest/status")
+async def ingest_status(
+    claims: TokenClaims = Depends(require(Permission.DASHBOARD_VIEW)),  # noqa: B008
+) -> dict[str, Any]:
+    del claims
+    from app.services.continuous_ingest import engine
+
+    return engine.get_status()
+
+
 @router.get("/posts", response_model=list[PostListItem])
 async def list_posts(
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -118,6 +201,41 @@ async def list_posts(
 ) -> list[PostListItem]:
     del claims
     return await newsroom_service.list_posts(session, status=status, category=category)
+
+
+@router.post("/posts", response_model=PostListItem)
+async def create_post(
+    body: PostCreateIn,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.POSTS_WRITE)),  # noqa: B008
+) -> PostListItem:
+    return await posts_service.create_post(
+        session, body, admin_id=UUID(claims.sub), ip=_ip(request)
+    )
+
+
+@router.patch("/posts/{post_id}", response_model=PostListItem)
+async def update_post(
+    post_id: UUID,
+    body: PostUpdateIn,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.POSTS_WRITE)),  # noqa: B008
+) -> PostListItem:
+    return await posts_service.update_post(
+        session, post_id, body, admin_id=UUID(claims.sub), ip=_ip(request)
+    )
+
+
+@router.post("/curate", response_model=CurateOut)
+async def curate_story(
+    body: CurateIn,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.POSTS_WRITE)),  # noqa: B008
+) -> CurateOut:
+    del claims
+    return await posts_service.curate_story(session, body)
 
 
 @router.post("/posts/{post_id}/publish", response_model=PostListItem)
@@ -183,3 +301,51 @@ async def stats_overview(
 ) -> OverviewStats:
     del claims
     return await newsroom_service.overview(session)
+
+
+@router.get("/settings", response_model=AppSettingsRead)
+async def get_app_settings(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.SETTINGS_MANAGE)),  # noqa: B008
+) -> AppSettingsRead:
+    del claims
+    return await settings_service.get_owner_settings(session)
+
+
+@router.patch("/settings", response_model=AppSettingsRead)
+async def update_app_settings(
+    body: AppSettingsUpdate,
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.SETTINGS_MANAGE)),  # noqa: B008
+) -> AppSettingsRead:
+    admin_id = _admin_uuid(claims.sub)
+    updated = await settings_service.update_owner_settings(session, body, admin_id=admin_id)
+    diff = body.model_dump(exclude_unset=True)
+    if "llm_api_key" in diff and diff["llm_api_key"]:
+        diff["llm_api_key"] = "[REDACTED]"
+    if "youtube_api_key" in diff and diff["youtube_api_key"]:
+        diff["youtube_api_key"] = "[REDACTED]"
+    await audit_repo.write(
+        session,
+        action="update",
+        entity="app_settings",
+        entity_id="1",
+        admin_id=admin_id,
+        diff=diff,
+        ip=_ip(request),
+        note="Owner updated dynamic runtime settings",
+    )
+    await session.commit()
+    return updated
+
+
+@router.post("/settings/test-llm", response_model=TestLlmResponse)
+async def test_llm_route(
+    body: TestLlmRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    claims: TokenClaims = Depends(require(Permission.SETTINGS_MANAGE)),  # noqa: B008
+) -> TestLlmResponse:
+    del claims
+    return await settings_service.test_llm_connection(session, body)
+

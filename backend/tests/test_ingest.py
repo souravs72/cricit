@@ -174,12 +174,14 @@ def test_due_when_never_fetched_or_interval_elapsed() -> None:
     paused = _source(is_active=False, last_fetched_at=None)
     html = _source(adapter="html", last_fetched_at=None)
     youtube = _source(adapter="youtube", last_fetched_at=None)
+    manual = _source(adapter=None, last_fetched_at=None)
     assert is_due(fresh, now=NOW)
     assert not is_due(recent, now=NOW)
     assert is_due(stale, now=NOW)
     assert not is_due(paused, now=NOW)
     assert is_due(html, now=NOW)
-    assert not is_due(youtube, now=NOW)
+    assert is_due(youtube, now=NOW)
+    assert not is_due(manual, now=NOW)
 
 
 def test_beat_vs_lose_is_possible_not_merged() -> None:

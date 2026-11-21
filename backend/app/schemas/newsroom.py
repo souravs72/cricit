@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -32,6 +33,9 @@ class PostListItem(BaseModel):
     category: str
     headline: str
     summary: str = ""
+    headline_hi: str | None = None
+    summary_hi: str | None = None
+    image_url: str | None = None
     author_credit: str | None
     published_at: datetime | None
     prompt_version: str | None = None
@@ -39,6 +43,51 @@ class PostListItem(BaseModel):
     original_url: str | None = None
     possible_duplicate_of: UUID | None = None
     duplicate_headline: str | None = None
+
+
+class PostUpdateIn(BaseModel):
+    headline: str | None = None
+    summary: str | None = None
+    headline_hi: str | None = None
+    summary_hi: str | None = None
+    category: str | None = None
+    tags: list[str] | None = None
+    image_url: str | None = None
+    author_credit: str | None = None
+    status: Literal["draft", "review", "published", "rejected"] | None = None
+    publish_now: bool = False
+
+
+class PostCreateIn(BaseModel):
+    headline: str
+    summary: str
+    headline_hi: str | None = None
+    summary_hi: str | None = None
+    category: str = "international"
+    kind: str = "read"
+    tags: list[str] = Field(default_factory=list)
+    image_url: str | None = None
+    author_credit: str | None = "CRICIT Newsroom"
+    original_url: str | None = None
+    status: Literal["draft", "review", "published"] = "published"
+
+
+class CurateIn(BaseModel):
+    raw_text: str | None = None
+    url: str | None = None
+    category: str | None = None
+    notes: str | None = None
+
+
+class CurateOut(BaseModel):
+    headline: str
+    summary: str
+    headline_hi: str | None = None
+    summary_hi: str | None = None
+    category: str
+    tags: list[str] = Field(default_factory=list)
+    image_url: str | None = None
+    author_credit: str = "CRICIT Newsroom"
 
 
 class AdOut(BaseModel):

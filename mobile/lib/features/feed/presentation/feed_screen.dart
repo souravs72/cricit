@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,6 +87,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
   final _hindiOverride = <String, bool>{};
   var _reportedInitialView = false;
   var _currentIndex = 0;
+  var _lastWheelTimestamp = 0;
 
   @override
   void dispose() {
@@ -97,7 +99,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
     if (_currentIndex < total - 1 && _page.hasClients) {
       HapticFeedback.lightImpact();
       _page.nextPage(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 320),
         curve: Curves.easeOutCubic,
       );
     }
@@ -107,9 +109,23 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
     if (_currentIndex > 0 && _page.hasClients) {
       HapticFeedback.lightImpact();
       _page.previousPage(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 320),
         curve: Curves.easeOutCubic,
       );
+    }
+  }
+
+  void _handlePointerSignal(PointerSignalEvent event, int total) {
+    if (event is PointerScrollEvent) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - _lastWheelTimestamp < 260) return;
+      if (event.scrollDelta.dy > 12) {
+        _lastWheelTimestamp = now;
+        _goToNext(total);
+      } else if (event.scrollDelta.dy < -12) {
+        _lastWheelTimestamp = now;
+        _goToPrevious();
+      }
     }
   }
 
@@ -164,92 +180,144 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
       case FeedStatus.empty:
         body = EmptyState(title: l10n.noStories, body: l10n.noStoriesBody);
       case FeedStatus.data:
-        body = GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragEnd: (details) {
-            final vx = details.primaryVelocity ?? 0;
-            if (vx < -150) {
-              _goToNext(snap.cards.length);
-            } else if (vx > 150) {
-              if (_currentIndex > 0) _goToPrevious();
-            }
-          },
-          onVerticalDragEnd: (details) {
-            final vy = details.primaryVelocity ?? 0;
-            if (vy < -250) {
-              _goToNext(snap.cards.length);
-            } else if (vy > 250) {
-              if (_currentIndex > 0) {
-                _goToPrevious();
-              } else {
-                HapticFeedback.mediumImpact();
-                ctrl.refresh();
+        body = Listener(
+          onPointerSignal: (event) => _handlePointerSignal(event, snap.cards.length),
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: (details) {
+              final vx = details.primaryVelocity ?? 0;
+              if (vx < -150) {
+                _goToNext(snap.cards.length);
+              } else if (vx > 150) {
+                if (_currentIndex > 0) _goToPrevious();
               }
-            }
-          },
-          child: Stack(
-            children: [
-              PageView.builder(
-                controller: _page,
-                scrollDirection: Axis.vertical,
-                physics: AlwaysScrollableScrollPhysics(
-                  parent: MediaQuery.disableAnimationsOf(context)
-                      ? const ClampingScrollPhysics()
-                      : const PageScrollPhysics(),
-                ),
-                itemCount: snap.cards.length,
-                onPageChanged: (idx) {
-                  setState(() => _currentIndex = idx);
-                  HapticFeedback.selectionClick();
-                  ctrl.onPageChanged(idx);
-                },
-                itemBuilder: (context, i) {
-                  final card = snap.cards[i];
-                  final hindi = _hindiOverride[card.id] ?? settings.isHindi;
+            },
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is OverscrollNotification &&
+                    notification.overscroll < -24 &&
+                    _currentIndex == 0) {
+                  HapticFeedback.mediumImpact();
+                  ctrl.refresh();
+                }
+                return false;
+              },
+              child: Stack(
+                children: [
+                  PageView.builder(
+                    controller: _page,
+                    scrollDirection: Axis.vertical,
+                    physics: const PageScrollPhysics(
+                      parent: ClampingScrollPhysics(),
+                    ),
+                    itemCount: snap.cards.length,
+                    onPageChanged: (idx) {
+                      setState(() => _currentIndex = idx);
+                      HapticFeedback.selectionClick();
+                      ctrl.onPageChanged(idx);
+                    },
+                    itemBuilder: (context, i) {
+                      final card = snap.cards[i];
+                      final hindi = _hindiOverride[card.id] ?? settings.isHindi;
 
-                  // If Video tab, render full-height VideoShortView.
-                  // PageView.builder handles horizontal swipes natively with smooth physics.
-                  if (widget.tab == 'video' || (card.isVideo && card.summary.isEmpty)) {
-                    return VideoShortView(
-                      card: card,
-                      saved: settings.bookmarks.contains(card.id),
-                      onToggleSave: () =>
-                          ref.read(settingsProvider.notifier).toggleBookmark(card.id),
-                      indexLabel: 'Video Short ${i + 1} of ${snap.cards.length}',
-                    );
-                  }
+                      Widget cardWidget;
+                      if (widget.tab == 'video' || (card.isVideo && card.summary.isEmpty)) {
+                        cardWidget = VideoShortView(
+                          card: card,
+                          saved: settings.bookmarks.contains(card.id),
+                          onToggleSave: () =>
+                              ref.read(settingsProvider.notifier).toggleBookmark(card.id),
+                          indexLabel: 'Video Short ${i + 1} of ${snap.cards.length}',
+                          onSwipeNext: i < snap.cards.length - 1
+                              ? () => _goToNext(snap.cards.length)
+                              : null,
+                          onSwipePrevious: i > 0 ? _goToPrevious : null,
+                        );
+                      } else {
+                        cardWidget = NewsCardView(
+                          card: card,
+                          saved: settings.bookmarks.contains(card.id),
+                          forceHindi: hindi,
+                          indexLabel: 'Story ${i + 1} of ${snap.cards.length}',
+                          onOpenSource: card.url == null ? null : () => _open(card),
+                          onToggleSave: () =>
+                              ref.read(settingsProvider.notifier).toggleBookmark(card.id),
+                          onToggleLanguage: card.hasHindi
+                              ? () => setState(() => _hindiOverride[card.id] = !hindi)
+                              : null,
+                        );
+                      }
 
-                  return NewsCardView(
-                    card: card,
-                    saved: settings.bookmarks.contains(card.id),
-                    forceHindi: hindi,
-                    indexLabel: 'Story ${i + 1} of ${snap.cards.length}',
-                    onOpenSource: card.url == null ? null : () => _open(card),
-                    onPlayVideo: card.isVideo ? () => _open(card) : null,
-                    onToggleSave: () =>
-                        ref.read(settingsProvider.notifier).toggleBookmark(card.id),
-                    onToggleLanguage: card.hasHindi
-                        ? () => setState(() => _hindiOverride[card.id] = !hindi)
-                        : null,
-                  );
-                },
+                      // Inshorts Deck Slide Transformation
+                      return AnimatedBuilder(
+                        animation: _page,
+                        builder: (context, child) {
+                          double pageOffset = 0.0;
+                          if (_page.hasClients && _page.position.haveDimensions) {
+                            pageOffset = (_page.page ?? _page.initialPage.toDouble()) - i;
+                          } else {
+                            pageOffset = (_currentIndex - i).toDouble();
+                          }
+
+                          final clamped = pageOffset.clamp(-1.0, 1.0);
+                          if (MediaQuery.disableAnimationsOf(context) || clamped.abs() < 0.001) {
+                            return child!;
+                          }
+
+                          // When swiping up:
+                          // clamped > 0: Card is moving upwards (outgoing card)
+                          // Scale gently down and dim
+                          if (clamped > 0) {
+                            final scale = (1.0 - (clamped * 0.06)).clamp(0.88, 1.0);
+                            final opacity = (1.0 - (clamped * 0.35)).clamp(0.45, 1.0);
+                            return Transform.scale(
+                              scale: scale,
+                              child: Opacity(
+                                opacity: opacity,
+                                child: child,
+                              ),
+                            );
+                          }
+
+                          // clamped < 0: Card is sliding in from bottom (incoming card)
+                          // Elevation shadow creates distinct physical slide boundary
+                          final shadowAlpha = (clamped.abs() * 0.45).clamp(0.0, 0.45);
+                          return Container(
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: shadowAlpha),
+                                  blurRadius: 18,
+                                  spreadRadius: 2,
+                                  offset: const Offset(0, -6),
+                                ),
+                              ],
+                            ),
+                            child: child,
+                          );
+                        },
+                        child: cardWidget,
+                      );
+                    },
+                  ),
+
+                  // Segmented story timeline & deck navigation bar at top
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _DeckTopBar(
+                      currentIndex: _currentIndex,
+                      total: snap.cards.length,
+                      onPrevious: _currentIndex > 0 ? _goToPrevious : null,
+                      onNext: _currentIndex < snap.cards.length - 1
+                          ? () => _goToNext(snap.cards.length)
+                          : null,
+                    ),
+                  ),
+                ],
               ),
-
-              // Segmented story timeline & deck navigation bar at top
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _DeckTopBar(
-                  currentIndex: _currentIndex,
-                  total: snap.cards.length,
-                  onPrevious: _currentIndex > 0 ? _goToPrevious : null,
-                  onNext: _currentIndex < snap.cards.length - 1
-                      ? () => _goToNext(snap.cards.length)
-                      : null,
-                ),
-              ),
-            ],
+            ),
           ),
         );
     }

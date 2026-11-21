@@ -27,6 +27,9 @@ export type PostRow = {
   category: string;
   headline: string;
   summary?: string;
+  headline_hi?: string | null;
+  summary_hi?: string | null;
+  image_url?: string | null;
   author_credit: string | null;
   published_at: string | null;
   prompt_version: string | null;

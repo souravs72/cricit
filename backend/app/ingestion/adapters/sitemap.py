@@ -45,7 +45,7 @@ class SitemapAdapter:
             return []
         clock = now or datetime.now(UTC)
         try:
-            root = fromstring(content)  # noqa: S314
+            root = fromstring(content)
         except ParseError:
             return []
         items: list[RawItem] = []

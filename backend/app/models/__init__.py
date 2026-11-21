@@ -4,6 +4,7 @@ from app.models.accounts import Admin, AdminRecoveryCode, AuditLog, Bookmark, De
 from app.models.ads import AdCampaign, AdStatsDaily, AiJob
 from app.models.base import Base
 from app.models.content import NxtspotSubmission, Post, PostSource, PostStatsDaily, Source
+from app.models.settings import AppSettings
 
 __all__ = [
     "AdCampaign",
@@ -11,6 +12,7 @@ __all__ = [
     "Admin",
     "AdminRecoveryCode",
     "AiJob",
+    "AppSettings",
     "AuditLog",
     "Base",
     "Bookmark",

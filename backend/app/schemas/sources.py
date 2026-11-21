@@ -18,8 +18,8 @@ from app.ingestion.ssrf import assert_public_http_url
 
 Category = Literal["domestic", "international", "grassroots"]
 Trust = Literal["auto", "review"]
-Adapter = Literal["rss", "sitemap", "html", "youtube"]
-SourceType = Literal["news", "youtube_channel", "youtube_search", "x"]
+Adapter = Literal["rss", "sitemap", "html", "youtube", "twitter", "x"]
+SourceType = Literal["news", "youtube_channel", "youtube_search", "x", "twitter"]
 
 
 class RssAdapterConfig(BaseModel):
@@ -62,7 +62,17 @@ class HtmlAdapterConfig(BaseModel):
 
 class YoutubeAdapterConfig(BaseModel):
     kind: Literal["youtube"] = "youtube"
-    channel_id: str = Field(min_length=8, max_length=40)
+    channel_id: str | None = Field(default=None, max_length=60)
+    handle: str | None = Field(default=None, max_length=60)
+    feed_url: str | None = Field(default=None, max_length=300)
+    url: str | None = Field(default=None, max_length=300)
+
+
+class TwitterAdapterConfig(BaseModel):
+    kind: Literal["twitter", "x"] = "twitter"
+    handle: str | None = Field(default=None, max_length=60)
+    search_query: str | None = Field(default=None, max_length=120)
+    feed_url: str | None = Field(default=None, max_length=300)
 
 
 class EmptyAdapterConfig(BaseModel):
@@ -77,6 +87,8 @@ def normalised_config(adapter: str | None, raw: dict[str, Any] | None) -> dict[s
         "sitemap": SitemapAdapterConfig,
         "html": HtmlAdapterConfig,
         "youtube": YoutubeAdapterConfig,
+        "twitter": TwitterAdapterConfig,
+        "x": TwitterAdapterConfig,
         "none": EmptyAdapterConfig,
     }
     model = mapping.get(kind)

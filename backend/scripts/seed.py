@@ -52,12 +52,25 @@ SOURCES = [
     ("IPL", "news", "html", "domestic", "review"),
     ("NDTV Sports", "news", "rss", "domestic", "review"),
     ("ESPNcricinfo (India)", "news", "rss", "international", "auto"),
+    ("Cricbuzz News", "news", "html", "domestic", "review"),
+    ("Sportskeeda Cricket", "news", "html", "domestic", "review"),
+    ("Fox Sports Cricket", "news", "html", "international", "review"),
     ("Nxtspot", "news", None, "grassroots", "review"),
     ("BCCI YouTube", "youtube_channel", "youtube", "international", "auto"),
     ("ICC YouTube", "youtube_channel", "youtube", "international", "auto"),
+    ("Cricbuzz Shorts", "youtube_channel", "youtube", "domestic", "auto"),
+    ("Sportskeeda Shorts", "youtube_channel", "youtube", "domestic", "review"),
+    ("Harsha Bhogle Shorts", "youtube_channel", "youtube", "international", "auto"),
+    ("Aakash Chopra Shorts", "youtube_channel", "youtube", "domestic", "review"),
+    ("RCB Playbold Shorts", "youtube_channel", "youtube", "domestic", "auto"),
+    ("BCCI on X", "x", "x", "domestic", "auto"),
+    ("ICC on X", "x", "x", "international", "auto"),
+    ("Cricbuzz on X", "x", "x", "domestic", "auto"),
+    ("ESPNcricinfo on X", "x", "x", "international", "auto"),
+    ("IPL on X", "x", "x", "domestic", "auto"),
 ]
 
-# Public feeds from docs/sources.md. Re-runs fill adapter_config if it was empty.
+# Public feeds and configs from brief. Re-runs fill adapter_config if it was empty.
 FEED_CONFIG: dict[str, dict[str, str]] = {
     "ESPNcricinfo": {
         "kind": "rss",
@@ -86,8 +99,33 @@ FEED_CONFIG: dict[str, dict[str, str]] = {
         "listing_url": "https://www.iplt20.com/news",
         "item_selector": "article a[href], a[href*='/news/']",
     },
-    "BCCI YouTube": {"kind": "youtube", "channel_id": "UCiErvZ3iVs0LnWoJBWcuK8Q"},
-    "ICC YouTube": {"kind": "youtube", "channel_id": "UCt2JXOLNxszYDuYHnmuLuJw"},
+    "Cricbuzz News": {
+        "kind": "html",
+        "listing_url": "https://www.cricbuzz.com/cricket-news",
+        "item_selector": "a[href*='/cricket-news/']",
+    },
+    "Sportskeeda Cricket": {
+        "kind": "html",
+        "listing_url": "https://www.sportskeeda.com/cricket",
+        "item_selector": "a[href*='/cricket/']",
+    },
+    "Fox Sports Cricket": {
+        "kind": "html",
+        "listing_url": "https://www.foxsports.com.au/cricket",
+        "item_selector": "a[href*='/cricket/']",
+    },
+    "BCCI YouTube": {"kind": "youtube", "handle": "@BCCI", "channel_id": "UCiErvZ3iVs0LnWoJBWcuK8Q"},
+    "ICC YouTube": {"kind": "youtube", "handle": "@ICC", "channel_id": "UCt2JXOLNxszYDuYHnmuLuJw"},
+    "Cricbuzz Shorts": {"kind": "youtube", "handle": "@cricbuzz"},
+    "Sportskeeda Shorts": {"kind": "youtube", "handle": "@sportskeeda"},
+    "Harsha Bhogle Shorts": {"kind": "youtube", "handle": "@HarshaBhogle"},
+    "Aakash Chopra Shorts": {"kind": "youtube", "handle": "@AakashChopra"},
+    "RCB Playbold Shorts": {"kind": "youtube", "handle": "@RCBTweets"},
+    "BCCI on X": {"kind": "x", "handle": "BCCI"},
+    "ICC on X": {"kind": "x", "handle": "ICC"},
+    "Cricbuzz on X": {"kind": "x", "handle": "cricbuzz"},
+    "ESPNcricinfo on X": {"kind": "x", "handle": "ESPNcricinfo"},
+    "IPL on X": {"kind": "x", "handle": "IPL"},
     "NDTV Sports": {
         "kind": "rss",
         "feed_url": "https://feeds.feedburner.com/ndtvsports-cricket",
@@ -240,6 +278,13 @@ async def seed(session: AsyncSession) -> None:
             by_slug[slug] = existing_post
             continue
         src = await _source(session, src_name)
+        vid_id = None
+        if kind == "video":
+            vid_map = {
+                "bumrah-yorker-perth": "xtn0lf5TY84",
+                "pant-reverse-scoop": "zkXTEiNYtm8",
+            }
+            vid_id = vid_map.get(slug, "Bo6F3zBliQY")
         post = Post(
             kind=kind,
             status="published",
@@ -252,6 +297,7 @@ async def seed(session: AsyncSession) -> None:
             original_url=url,
             url_hash=_hash_url(url),
             source_id=src.id,
+            video_id=vid_id,
             author_credit=src_name,
             tags=tags,
             prompt_version="summarize_v1",

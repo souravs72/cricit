@@ -18,7 +18,7 @@ from app.core.errors import ValidationFailed
 from app.ingestion.ssrf import assert_public_http_url, assert_safe_to_fetch
 
 USER_AGENT = "CRICITBot/1.0 (+https://cricit.app/bot)"
-TIMEOUT = httpx.Timeout(15.0, connect=5.0)
+TIMEOUT = httpx.Timeout(20.0, connect=10.0)
 ROBOTS_TTL_SEC = 86_400
 MIN_INTERVAL_SEC = 1.0
 
@@ -89,7 +89,7 @@ async def wait_host(
 
 
 def make_client(*, resolve: bool, field: str) -> httpx.AsyncClient:
-    def _guard(request: httpx.Request) -> None:
+    async def _guard(request: httpx.Request) -> None:
         url = str(request.url)
         if resolve:
             assert_safe_to_fetch(url, field=field)

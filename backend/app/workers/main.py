@@ -23,7 +23,7 @@ async def fetch_source(ctx: dict[str, Any], source_id: str) -> dict[str, Any]:
     """Fetch one RSS/HTML/sitemap source. Job id is source+interval slot so retries collapse."""
     del ctx
     async with get_sessionmaker()() as db:
-        result = await fetch_and_store(db, UUID(source_id))
+        result = await fetch_and_store(db, UUID(source_id), enrich_with_ai=True)
     return {str(k): v for k, v in result.items()}
 
 

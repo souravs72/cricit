@@ -113,9 +113,23 @@ async def test_fetch(db: AsyncSession, source_id: UUID) -> TestFetchOut:
     if adapter is None:
         raise NotBuiltYet("Test fetch for this adapter is T17")
     cfg = dict(row.adapter_config or {})
-    target = cfg.get("feed_url") or cfg.get("listing_url") or cfg.get("sitemap_url")
-    if not isinstance(target, str):
-        raise NotFound("This source has no fetch URL")
+    target = (
+        cfg.get("feed_url")
+        or cfg.get("listing_url")
+        or cfg.get("sitemap_url")
+        or cfg.get("url")
+    )
+    if not target:
+        if row.adapter == "youtube":
+            handle = cfg.get("handle") or "@cricbuzz"
+            h = handle if handle.startswith("@") else f"@{handle}"
+            target = f"https://www.youtube.com/{h}/shorts"
+        elif row.adapter in ("twitter", "x"):
+            handle = cfg.get("handle") or "BCCI"
+            target = f"https://x.com/{handle.lstrip('@')}"
+        else:
+            raise NotFound("This source has no fetch URL")
+
     assert_safe_to_fetch(target, field="url")
     result = await adapter.fetch(cfg, etag=None, last_modified=None)
     items = [

@@ -143,21 +143,29 @@ class _NewsCardViewState extends State<NewsCardView> {
                           Positioned(
                             top: 8,
                             right: 8,
-                            child: Material(
-                              color: Colors.black54,
-                              shape: const CircleBorder(),
-                              child: InkWell(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(() => _isPlayingVideo = false);
-                                },
-                                customBorder: const CircleBorder(),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(6),
-                                  child: Icon(
-                                    Icons.close,
-                                    size: 18,
-                                    color: Colors.white,
+                            child: Semantics(
+                              button: true,
+                              label: 'Close video player',
+                              child: SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: Material(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  shape: const CircleBorder(),
+                                  elevation: 3,
+                                  child: InkWell(
+                                    onTap: () {
+                                      HapticFeedback.selectionClick();
+                                      setState(() => _isPlayingVideo = false);
+                                    },
+                                    customBorder: const CircleBorder(),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.close,
+                                        size: 20,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

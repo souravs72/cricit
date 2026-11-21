@@ -11,13 +11,21 @@ from app.core.db import get_session
 from app.core.errors import NotBuiltYet
 from app.core.ratelimit import RateLimiter
 from app.core.redis import get_redis
-from app.schemas.auth import FirebaseExchangeIn, RefreshIn, TokenPair
+from app.schemas.auth import (
+    FirebaseExchangeIn,
+    RefreshIn,
+    SendOtpIn,
+    SendOtpOut,
+    TokenPair,
+    VerifyOtpIn,
+)
 from app.schemas.events import EventsIn
 from app.schemas.feed import FeedPage, Lang, Tab
 from app.schemas.newsroom import DiscoverOut
 from app.services import events as events_service
 from app.services import feed as feed_service
 from app.services import newsroom as newsroom_service
+from app.services import otp as otp_service
 from app.services import tokens as token_service
 from app.services import user_auth as user_auth_service
 from app.services.feed import FEED_CACHE_CONTROL
@@ -39,6 +47,26 @@ async def get_feed(
         session,
         settings,
         tab=tab,
+        lang=lang,
+        cursor=cursor,
+        redis=get_redis(),
+    )
+
+
+@router.get("/videos", response_model=FeedPage, dependencies=[Depends(public)])
+async def get_videos(
+    response: Response,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    lang: Lang = "en",
+    cursor: Annotated[str | None, Query(max_length=200)] = None,
+) -> FeedPage:
+    """T17: Shorts and cricket video feed, cursor-paginated, CDN-cacheable."""
+    response.headers["Cache-Control"] = FEED_CACHE_CONTROL
+    return await feed_service.get_feed(
+        session,
+        settings,
+        tab="video",
         lang=lang,
         cursor=cursor,
         redis=get_redis(),
@@ -90,6 +118,30 @@ async def discover(
     lang: Lang = "en",
 ) -> DiscoverOut:
     return await newsroom_service.discover(session, settings, lang=lang)
+
+
+@router.post("/auth/otp/send", response_model=SendOtpOut, dependencies=[Depends(public)])
+async def send_otp_endpoint(
+    body: SendOtpIn,
+) -> SendOtpOut:
+    """Dispatches a real dynamic OTP via free real-time ntfy.sh notification stream."""
+    return await otp_service.send_otp(body.phone, channel=body.channel)
+
+
+@router.post("/auth/otp/verify", response_model=TokenPair, dependencies=[Depends(public)])
+async def verify_otp_endpoint(
+    body: VerifyOtpIn,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> TokenPair:
+    """Verifies the dynamic OTP and issues reader session tokens."""
+    return await otp_service.verify_otp(
+        session,
+        settings,
+        phone=body.phone,
+        code=body.code,
+        device_id=body.device_id,
+    )
 
 
 @router.post("/auth/firebase", response_model=TokenPair, dependencies=[Depends(public)])

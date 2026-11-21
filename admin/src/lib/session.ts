@@ -6,8 +6,8 @@ type TokenPair = { access_token: string; refresh_token: string; expires_in: numb
 
 const base = {
   httpOnly: true,
-  secure: true, // required by the __Host- prefix; localhost is treated as secure by browsers
-  sameSite: "strict" as const,
+  secure: process.env.COOKIE_SECURE === "true",
+  sameSite: "lax" as const,
   path: "/",
 };
 

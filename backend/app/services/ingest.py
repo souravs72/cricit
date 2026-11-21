@@ -108,6 +108,7 @@ class PlannedPost:
     merge_into: UUID | None
     possible_duplicate_of: UUID | None
     image_url: str | None
+    raw_text: str | None = None
 
 
 def plan_items(
@@ -129,11 +130,12 @@ def plan_items(
         if published.tzinfo is None:
             published = published.replace(tzinfo=UTC)
         verdict, match_id = _match(Candidate(item.title, published), recent)
+        raw_text = str(item.extra.get("summary") or item.title)
         if verdict is Verdict.DUPLICATE and match_id is not None:
             planned.append(
                 PlannedPost(
                     headline=item.title[:160],
-                    summary=rss_teaser(str(item.extra.get("summary") or item.title)),
+                    summary=rss_teaser(raw_text),
                     original_url=item.url,
                     url_hash=digest,
                     status="review",
@@ -141,6 +143,7 @@ def plan_items(
                     merge_into=match_id,
                     possible_duplicate_of=match_id,
                     image_url=item.image_url,
+                    raw_text=raw_text,
                 )
             )
             continue
@@ -149,7 +152,7 @@ def plan_items(
         planned.append(
             PlannedPost(
                 headline=item.title[:160],
-                summary=rss_teaser(str(item.extra.get("summary") or item.title)),
+                summary=rss_teaser(raw_text),
                 original_url=item.url,
                 url_hash=digest,
                 status=status,
@@ -157,12 +160,18 @@ def plan_items(
                 merge_into=None,
                 possible_duplicate_of=match_id if verdict is Verdict.POSSIBLE else None,
                 image_url=item.image_url,
+                raw_text=raw_text,
             )
         )
     return planned
 
 
-async def fetch_and_store(db: AsyncSession, source_id: UUID) -> dict[str, int | str | bool]:
+async def fetch_and_store(
+    db: AsyncSession,
+    source_id: UUID,
+    *,
+    enrich_with_ai: bool = False,
+) -> dict[str, int | str | bool]:
     source = await sources_repo.get(db, source_id)
     adapter = adapter_for(source.adapter) if source is not None else None
     if source is None or adapter is None:
@@ -196,6 +205,7 @@ async def fetch_and_store(db: AsyncSession, source_id: UUID) -> dict[str, int | 
     ]
     created = 0
     merged = 0
+    new_posts: list[tuple[Post, PlannedPost]] = []
     for plan in plan_items(source, result.items, known_hashes=known, recent=recent, now=now):
         if plan.merge_into is not None:
             await posts_repo.add_source_link(
@@ -203,26 +213,40 @@ async def fetch_and_store(db: AsyncSession, source_id: UUID) -> dict[str, int | 
             )
             merged += 1
             continue
-        db.add(
-            Post(
-                kind="read",
-                status=plan.status,
-                category=source.default_category,
-                headline=plan.headline,
-                summary=plan.summary,
-                original_url=plan.original_url,
-                url_hash=plan.url_hash,
-                source_id=source.id,
-                possible_duplicate_of=plan.possible_duplicate_of,
-                author_credit=source.name,
-                image_url=plan.image_url,
-                tags=[],
-                published_at=plan.published_at,
-            )
+        post = Post(
+            kind="read",
+            status=plan.status,
+            category=source.default_category,
+            headline=plan.headline,
+            summary=plan.summary,
+            original_url=plan.original_url,
+            url_hash=plan.url_hash,
+            source_id=source.id,
+            possible_duplicate_of=plan.possible_duplicate_of,
+            author_credit=source.name,
+            image_url=plan.image_url,
+            tags=[],
+            published_at=plan.published_at,
         )
+        db.add(post)
+        new_posts.append((post, plan))
         created += 1
+
     record_success(source, etag=result.etag, last_modified=result.last_modified, now=now)
     await db.commit()
+
+    if enrich_with_ai and new_posts:
+        from app.services.ai_pipeline import process_post_intelligence
+
+        for post, plan in new_posts:
+            with contextlib.suppress(Exception):
+                await process_post_intelligence(
+                    db,
+                    post,
+                    source_name=source.name,
+                    raw_content=plan.raw_text,
+                )
+
     if created:
         from app.services.publish import invalidate_all_feeds
 

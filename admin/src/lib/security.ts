@@ -1,7 +1,7 @@
 /** Pure helpers shared by middleware and route handlers (no Node-only imports). */
 
-export const ACCESS_COOKIE = "__Host-cricit_at";
-export const REFRESH_COOKIE = "__Host-cricit_rt";
+export const ACCESS_COOKIE = process.env.COOKIE_SECURE === "true" ? "__Host-cricit_at" : "cricit_at";
+export const REFRESH_COOKIE = process.env.COOKIE_SECURE === "true" ? "__Host-cricit_rt" : "cricit_rt";
 
 /** Paths an anonymous visitor may open. Everything else needs a session. */
 const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/totp"];

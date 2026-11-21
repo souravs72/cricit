@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'embedded_youtube_player_stub.dart'
-    if (dart.library.js_interop) 'embedded_youtube_player_web.dart';
+    if (dart.library.js_interop) 'embedded_youtube_player_web.dart'
+    if (dart.library.io) 'embedded_youtube_player_mobile.dart';
 
 /// Embedded YouTube player widget that runs completely inside the CRICIT app.
 /// On Web, uses a hardware-accelerated HTML iframe via HtmlElementView.

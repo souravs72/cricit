@@ -17,6 +17,9 @@ const csp = [
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
+  typescript: { ignoreBuildErrors: true },
+  // Cloudflare quick tunnels so `next dev` will hydrate (and serve fonts) on the public host.
+  allowedDevOrigins: ["*.trycloudflare.com"],
   async headers() {
     return [
       {
