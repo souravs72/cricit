@@ -7,7 +7,7 @@ set -euo pipefail
 HOST="${1:-ubuntu@137.23.51.182}"
 KEY="${SSH_KEY:-/home/ascra/.ssh/cricit_oci.key}"
 
-SSH_CMD="ssh -i ${KEY} -o StrictHostKeyChecking=accept-new"
+SSH_CMD="ssh -i ${KEY} -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=15 -o ServerAliveCountMax=60"
 
 echo "==> Triggering Git pull and deployment on ${HOST}..."
 ${SSH_CMD} "${HOST}" 'bash -s' << 'EOF'
