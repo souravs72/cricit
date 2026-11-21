@@ -22,3 +22,8 @@
   - [x] Update `video_short_view_test.dart` and `news_card_view_test.dart` to verify play tap and non-blocking gesture hierarchy.
   - [x] Fix `feed_screen_swipe_test.dart` to test vertical scroll navigation.
   - [x] Run `flutter test` across all mobile test suites (15/15 passed).
+
+- [x] 6. **Production Android APK Delivery**
+  - [x] Compile release APK with `assembleDevRelease` (configured with `API_BASE_URL=http://137.23.51.182` and `usesCleartextTraffic=true`).
+  - [x] Copy APK to local path `/home/ascra/Downloads/cricit/cricit-dev-release.apk`.
+  - [x] Deploy APK to remote server for direct over-the-air browser download at `http://137.23.51.182/app/cricit.apk`.
