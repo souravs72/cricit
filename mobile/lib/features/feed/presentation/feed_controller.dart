@@ -128,16 +128,45 @@ class FeedController extends Notifier<FeedSnapshot> {
   void onPageChanged(int index) {
     state = state.copyWith(pageIndex: index);
     _view(index);
-    if (state.nextCursor != null &&
-        !state.loadingMore &&
-        index >= state.cards.length - 5) {
+    // Aggressive prefetch: trigger loadMore when user is within 2 cards of the end
+    if (!state.loadingMore && index >= state.cards.length - 2) {
       Future.microtask(loadMore);
     }
   }
 
   Future<void> loadMore() async {
+    if (state.loadingMore) return;
     final cursor = state.nextCursor;
-    if (cursor == null || state.loadingMore) return;
+    if (cursor == null) {
+      // Infinite extension for video shorts tab so user never runs out of video reels
+      if (tab == 'video' && state.cards.isNotEmpty) {
+        state = state.copyWith(loadingMore: true);
+        final cycleCount = state.cards.length ~/ 4 + 1;
+        final baseCards = state.cards.take(4).toList();
+        final extended = baseCards.map((c) => NewsCard(
+          id: '${c.id}_loop_$cycleCount',
+          kind: c.kind,
+          category: c.category,
+          headline: c.headline,
+          headlineHi: c.headlineHi,
+          summary: c.summary,
+          summaryHi: c.summaryHi,
+          publishedAt: c.publishedAt,
+          shareUrl: c.shareUrl,
+          image: c.image,
+          videoId: c.videoId,
+          sourceName: c.sourceName,
+          url: c.url,
+          tags: c.tags,
+        ),).toList();
+        state = state.copyWith(
+          cards: [...state.cards, ...extended],
+          loadingMore: false,
+        );
+      }
+      return;
+    }
+
     state = state.copyWith(loadingMore: true);
     try {
       final page = await _repo.fetch(tab: tab, lang: _lang, cursor: cursor);

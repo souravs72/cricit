@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -13,7 +12,8 @@ import '../domain/news_card.dart';
 /// Full-screen height and full-screen width Cricket Video Short card.
 /// Designed for immersive, vertical cricket clips (Shorts & Reels style).
 /// The embedded YouTube player fills 100% of the screen height and width (edge-to-edge).
-/// Metadata and interactive actions float cleanly on top with a subtle scrim.
+/// Videos autoplay automatically when active and pause immediately when scrolled away.
+/// The next 2 upcoming videos are preloaded in the background for zero-latency switching.
 /// Supports double-tap to toggle between Reel Fill (full bleed) and Fit Video (contain).
 /// Fully supports horizontal swipe (swipe left for next, swipe right for previous).
 class VideoShortView extends StatefulWidget {
@@ -25,6 +25,8 @@ class VideoShortView extends StatefulWidget {
     this.indexLabel,
     this.onSwipeNext,
     this.onSwipePrevious,
+    this.isActive = true,
+    this.isPreload = false,
   });
 
   final NewsCard card;
@@ -33,13 +35,15 @@ class VideoShortView extends StatefulWidget {
   final String? indexLabel;
   final VoidCallback? onSwipeNext;
   final VoidCallback? onSwipePrevious;
+  final bool isActive;
+  final bool isPreload;
 
   @override
   State<VideoShortView> createState() => _VideoShortViewState();
 }
 
 class _VideoShortViewState extends State<VideoShortView> {
-  bool _isPlaying = true;
+  bool _userPaused = false;
   bool _liked = false;
   bool _coverMode = true;
   String? _modeBadgeMessage;
@@ -47,9 +51,24 @@ class _VideoShortViewState extends State<VideoShortView> {
   double _dragDeltaX = 0;
 
   @override
+  void didUpdateWidget(VideoShortView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      if (!widget.isActive) {
+        _userPaused = false;
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _badgeTimer?.cancel();
     super.dispose();
+  }
+
+  void _togglePlayPause() {
+    HapticFeedback.lightImpact();
+    setState(() => _userPaused = !_userPaused);
   }
 
   void _toggleCoverMode() {
@@ -93,13 +112,13 @@ class _VideoShortViewState extends State<VideoShortView> {
   Widget build(BuildContext context) {
     final card = widget.card;
     final videoId = card.videoId ?? 'xtn0lf5TY84';
-    final thumb = card.image ?? 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg';
     final hasSwipeCallbacks =
         widget.onSwipeNext != null || widget.onSwipePrevious != null;
 
     final isShort = (card.url != null && card.url!.contains('/shorts/')) ||
         card.tags.any((t) => t.toLowerCase().contains('short'));
     final videoRatio = isShort ? (9 / 16) : (16 / 9);
+    final isActuallyPlaying = widget.isActive && !_userPaused;
 
     Widget content = Material(
       color: Colors.black,
@@ -110,87 +129,46 @@ class _VideoShortViewState extends State<VideoShortView> {
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
+              onTap: _togglePlayPause,
               onDoubleTap: _toggleCoverMode,
-              child: _isPlaying
-                  ? EmbeddedYouTubePlayer(
-                      videoId: videoId,
-                      aspectRatio: videoRatio,
-                      fitFullScreen: true,
-                      coverMode: _coverMode,
-                      autoPlay: true,
-                      showControls: false,
-                      interactive: true,
-                    )
-                  : GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        setState(() => _isPlaying = true);
-                      },
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CachedNetworkImage(
-                            imageUrl: thumb,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) => const ColoredBox(
-                              color: Color(0xFF0F1713),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  EmbeddedYouTubePlayer(
+                    videoId: videoId,
+                    aspectRatio: videoRatio,
+                    fitFullScreen: true,
+                    coverMode: _coverMode,
+                    autoPlay: true,
+                    showControls: false,
+                    interactive: true,
+                    isActive: isActuallyPlaying,
+                    isPreload: widget.isPreload,
+                  ),
+                  if (widget.isActive && _userPaused)
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.65),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white38, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 16,
                             ),
-                            errorWidget: (_, __, ___) => const ColoredBox(
-                              color: Color(0xFF0F1713),
-                              child: Center(
-                                child: Icon(
-                                  Icons.videocam_outlined,
-                                  size: 48,
-                                  color: Colors.white38,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.82),
-                                borderRadius:
-                                    BorderRadius.circular(CricitRadius.full),
-                                border: Border.all(color: Colors.white38, width: 1.5),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.5),
-                                    blurRadius: 16,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.play_arrow_rounded,
-                                    color: Colors.white,
-                                    size: 32,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Play Video',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow_rounded,
+                          size: 48,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
+                ],
+              ),
             ),
           ),
 

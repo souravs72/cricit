@@ -1,3 +1,4 @@
+import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
@@ -6,6 +7,8 @@ import 'package:web/web.dart' as web;
 /// Sets `pointer-events: none` on the iframe so that Flutter can capture all
 /// swipe, drag, and flick gestures seamlessly.
 /// Supports edge-to-edge reel cover mode using `OverflowBox` and `ClipRect`.
+/// Supports instant autoplay lifecycle when `isActive` is true, pausing when `isActive`
+/// is false, and background pre-buffering when `isPreload` is true.
 class PlatformYouTubePlayer extends StatefulWidget {
   const PlatformYouTubePlayer({
     super.key,
@@ -16,6 +19,8 @@ class PlatformYouTubePlayer extends StatefulWidget {
     this.fitFullScreen = false,
     this.coverMode = true,
     this.interactive = true,
+    this.isActive = true,
+    this.isPreload = false,
   });
 
   final String videoId;
@@ -25,21 +30,45 @@ class PlatformYouTubePlayer extends StatefulWidget {
   final bool fitFullScreen;
   final bool coverMode;
   final bool interactive;
+  final bool isActive;
+  final bool isPreload;
 
   @override
   State<PlatformYouTubePlayer> createState() => _PlatformYouTubePlayerState();
 }
 
 class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
-  late final String _viewType;
+  late String _viewType;
   static final Set<String> _registeredTypes = {};
 
   @override
   void initState() {
     super.initState();
-    _viewType =
-        'cricit-yt-${widget.videoId}-${widget.interactive ? "i" : "p"}-${widget.autoPlay ? "play" : "pause"}-${widget.showControls ? "ctrl" : "noctrl"}';
+    _computeViewType();
     _registerView();
+  }
+
+  void _computeViewType() {
+    _viewType =
+        'cricit-yt-${widget.videoId}-${widget.interactive ? "i" : "p"}-${widget.isActive ? "act" : "inact"}-${widget.showControls ? "ctrl" : "noctrl"}';
+  }
+
+  @override
+  void didUpdateWidget(PlatformYouTubePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.videoId != oldWidget.videoId || widget.isActive != oldWidget.isActive) {
+      setState(() {
+        _computeViewType();
+        _registerView();
+      });
+      // Postmessage to iframe if already loaded for smooth playback toggle
+      final iframe = web.document.querySelector('iframe[src*="${widget.videoId}"]') as web.HTMLIFrameElement?;
+      if (iframe != null && iframe.contentWindow != null) {
+        final func = widget.isActive ? 'playVideo' : 'pauseVideo';
+        final cmd = '{"event":"command","func":"$func","args":""}';
+        iframe.contentWindow!.postMessage(cmd.toJS, '*'.toJS);
+      }
+    }
   }
 
   void _registerView() {
@@ -47,7 +76,8 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
     _registeredTypes.add(_viewType);
 
     final vId = widget.videoId;
-    final auto = widget.autoPlay ? '1' : '0';
+    final auto = (widget.isActive && widget.autoPlay) ? '1' : '0';
+    final mute = (!widget.isActive || widget.isPreload) ? '1' : '0';
     final controls = widget.showControls ? '1' : '0';
     final loop = widget.fitFullScreen ? '1' : '0';
     final interactive = widget.interactive;
@@ -58,7 +88,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
         final iframe =
             web.document.createElement('iframe') as web.HTMLIFrameElement;
         iframe.src =
-            'https://www.youtube-nocookie.com/embed/$vId?autoplay=$auto&playsinline=1&controls=$controls&loop=$loop&playlist=$vId&rel=0&modestbranding=1&enablejsapi=1&origin=${web.window.location.origin}';
+            'https://www.youtube-nocookie.com/embed/$vId?autoplay=$auto&mute=$mute&playsinline=1&controls=$controls&loop=$loop&playlist=$vId&rel=0&modestbranding=1&enablejsapi=1&origin=${web.window.location.origin}';
         iframe.style.width = '100%';
         iframe.style.height = '100%';
         iframe.style.border = '0';
@@ -105,7 +135,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
                   minHeight: targetHeight,
                   maxHeight: targetHeight,
                   alignment: Alignment.center,
-                  child: HtmlElementView(viewType: _viewType),
+                  child: HtmlElementView(key: ValueKey(_viewType), viewType: _viewType),
                 ),
               ),
             );
@@ -118,7 +148,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
             alignment: Alignment.center,
             child: AspectRatio(
               aspectRatio: effectiveRatio,
-              child: HtmlElementView(viewType: _viewType),
+              child: HtmlElementView(key: ValueKey(_viewType), viewType: _viewType),
             ),
           );
         },
@@ -129,7 +159,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       width: double.infinity,
       child: AspectRatio(
         aspectRatio: effectiveRatio,
-        child: HtmlElementView(viewType: _viewType),
+        child: HtmlElementView(key: ValueKey(_viewType), viewType: _viewType),
       ),
     );
   }

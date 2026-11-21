@@ -8,6 +8,8 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 ///
 /// Supports edge-to-edge full-bleed reel mode (zero letterbox/pillarbox) using
 /// `OverflowBox` and `ClipRect` viewport scaling.
+/// Handles instant autoplay when `isActive` is true, pauses immediately when `isActive`
+/// is false, and cues background preloading when `isPreload` is true.
 ///
 /// In headless unit/widget test environments (e.g. `flutter test` on desktop/CI),
 /// it safely returns a mock presentation to avoid missing platform channel errors.
@@ -21,6 +23,8 @@ class PlatformYouTubePlayer extends StatefulWidget {
     this.fitFullScreen = false,
     this.coverMode = true,
     this.interactive = true,
+    this.isActive = true,
+    this.isPreload = false,
   });
 
   final String videoId;
@@ -30,6 +34,8 @@ class PlatformYouTubePlayer extends StatefulWidget {
   final bool fitFullScreen;
   final bool coverMode;
   final bool interactive;
+  final bool isActive;
+  final bool isPreload;
 
   @override
   State<PlatformYouTubePlayer> createState() => _PlatformYouTubePlayerState();
@@ -51,13 +57,14 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   }
 
   void _initController() {
+    final shouldAutoPlay = widget.isActive && widget.autoPlay;
     _controller = YoutubePlayerController.fromVideoId(
       videoId: widget.videoId,
-      autoPlay: widget.autoPlay,
+      autoPlay: shouldAutoPlay,
       params: YoutubePlayerParams(
         showControls: widget.showControls,
         showFullscreenButton: false,
-        mute: false,
+        mute: !widget.isActive,
         enableJavaScript: true,
         showVideoAnnotations: false,
         loop: widget.fitFullScreen,
@@ -68,12 +75,19 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   @override
   void didUpdateWidget(PlatformYouTubePlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isTestEnvironment && widget.videoId != oldWidget.videoId) {
-      if (_controller != null) {
-        if (widget.autoPlay) {
+    if (!_isTestEnvironment && _controller != null) {
+      if (widget.videoId != oldWidget.videoId) {
+        if (widget.isActive) {
           _controller!.loadVideoById(videoId: widget.videoId);
         } else {
           _controller!.cueVideoById(videoId: widget.videoId);
+        }
+      } else if (widget.isActive != oldWidget.isActive) {
+        if (widget.isActive) {
+          _controller!.unMute();
+          _controller!.playVideo();
+        } else {
+          _controller!.pauseVideo();
         }
       }
     }

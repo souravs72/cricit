@@ -22,7 +22,7 @@ class FeedRepository {
       final res = await _dio.get<Map<String, dynamic>>(
         '/v1/feed',
         queryParameters: {
-          'tab': tab == 'video' ? 'feed' : tab,
+          'tab': tab,
           'lang': lang,
           if (cursor != null) 'cursor': cursor,
         },

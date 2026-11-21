@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -95,6 +96,21 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
     super.dispose();
   }
 
+  void _preloadUpcoming(List<NewsCard> cards, int current) {
+    if (!mounted) return;
+    for (int offset = 1; offset <= 2; offset++) {
+      final nextIdx = current + offset;
+      if (nextIdx < cards.length) {
+        final nextCard = cards[nextIdx];
+        final videoId = nextCard.videoId ?? 'xtn0lf5TY84';
+        final thumb = nextCard.image ?? 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg';
+        try {
+          precacheImage(CachedNetworkImageProvider(thumb), context);
+        } catch (_) {}
+      }
+    }
+  }
+
   void _goToNext(int total) {
     if (_currentIndex < total - 1 && _page.hasClients) {
       HapticFeedback.lightImpact();
@@ -164,6 +180,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
           }
         }
         ctrl.onPageChanged(0);
+        _preloadUpcoming(snap.cards, 0);
       });
     }
 
@@ -215,12 +232,16 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                       setState(() => _currentIndex = idx);
                       HapticFeedback.selectionClick();
                       ctrl.onPageChanged(idx);
+                      _preloadUpcoming(snap.cards, idx);
                     },
                     itemBuilder: (context, i) {
                       final card = snap.cards[i];
                       final hindi = _hindiOverride[card.id] ?? settings.isHindi;
 
                       Widget cardWidget;
+                      final isCurrent = i == _currentIndex;
+                      final isPreload = (i == _currentIndex + 1 || i == _currentIndex + 2);
+
                       if (widget.tab == 'video' || (card.isVideo && card.summary.isEmpty)) {
                         cardWidget = VideoShortView(
                           card: card,
@@ -232,6 +253,8 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                               ? () => _goToNext(snap.cards.length)
                               : null,
                           onSwipePrevious: i > 0 ? _goToPrevious : null,
+                          isActive: isCurrent,
+                          isPreload: isPreload,
                         );
                       } else {
                         cardWidget = NewsCardView(

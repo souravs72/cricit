@@ -14,6 +14,8 @@ class PlatformYouTubePlayer extends StatefulWidget {
     this.fitFullScreen = false,
     this.coverMode = true,
     this.interactive = true,
+    this.isActive = true,
+    this.isPreload = false,
   });
 
   final String videoId;
@@ -23,6 +25,8 @@ class PlatformYouTubePlayer extends StatefulWidget {
   final bool fitFullScreen;
   final bool coverMode;
   final bool interactive;
+  final bool isActive;
+  final bool isPreload;
 
   @override
   State<PlatformYouTubePlayer> createState() => _PlatformYouTubePlayerState();
