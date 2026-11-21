@@ -51,8 +51,8 @@ check-mobile: ## Analyze and test the Flutter app
 
 check: check-backend check-admin ## Run every check CI runs (mobile needs Flutter: make check-mobile)
 
-oci-sync: ## Install on Oracle Always Free: make oci-sync host=ubuntu@YOUR_IP
-	@test -n "$(host)" || { echo "usage: make oci-sync host=ubuntu@YOUR_IP"; exit 1; }
-	infra/oci/sync.sh "$(host)"
+deploy: ## Deploy to Oracle Cloud via GitHub push/pull (no rsync): make deploy
+	git push origin main
+	infra/oci/deploy.sh "ubuntu@137.23.51.182"
 
-.PHONY: help setup keys up down logs db-up api admin migrate migration seed check check-backend check-admin check-mobile oci-sync
+.PHONY: help setup keys up down logs db-up api admin migrate migration seed check check-backend check-admin check-mobile deploy
