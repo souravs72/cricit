@@ -38,7 +38,18 @@
 		reverse_proxy xtrain_web_portal:4002
 	}
 
-	# 3. Cricit Admin Newsroom (Default Root for all web features)
+	# 3. Convenience redirect for /admin -> /overview
+	redir /admin /overview
+	redir /admin/ /overview
+
+	# 4. Cricit Mobile Web App
+	handle_path /app* {
+		root * /srv/mobile-web
+		file_server
+		try_files {path} /index.html
+	}
+
+	# 5. Cricit Admin Newsroom (Default Root for all web features)
 	handle {
 		reverse_proxy admin:3000
 	}

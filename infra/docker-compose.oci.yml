@@ -27,6 +27,7 @@ services:
       CRICIT_TLS_EMAIL: ${CRICIT_TLS_EMAIL}
     volumes:
       - ./Caddyfile.oci:/etc/caddy/Caddyfile:ro
+      - ../mobile/build/web:/srv/mobile-web:ro
       - caddydata:/data
     restart: unless-stopped
     depends_on: [api, admin]
