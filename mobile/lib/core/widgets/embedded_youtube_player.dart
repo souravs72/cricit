@@ -6,8 +6,9 @@ import 'embedded_youtube_player_stub.dart'
 
 /// Embedded YouTube player widget that runs completely inside the CRICIT app.
 /// On Web, uses a hardware-accelerated HTML iframe via HtmlElementView.
-/// On Mobile/Test, uses the platform stub.
-/// Supports both fixed aspect ratio and full-screen height (fitFullScreen: true).
+/// On Mobile/Test, uses the platform stub or native WebView.
+/// Supports both fixed aspect ratio and full-screen height (fitFullScreen: true),
+/// as well as edge-to-edge reel cover mode (coverMode: true).
 class EmbeddedYouTubePlayer extends StatelessWidget {
   const EmbeddedYouTubePlayer({
     super.key,
@@ -16,6 +17,7 @@ class EmbeddedYouTubePlayer extends StatelessWidget {
     this.autoPlay = false,
     this.showControls = true,
     this.fitFullScreen = false,
+    this.coverMode = true,
     this.interactive = true,
   });
 
@@ -24,6 +26,7 @@ class EmbeddedYouTubePlayer extends StatelessWidget {
   final bool autoPlay;
   final bool showControls;
   final bool fitFullScreen;
+  final bool coverMode;
   final bool interactive;
 
   @override
@@ -36,7 +39,9 @@ class EmbeddedYouTubePlayer extends StatelessWidget {
         videoId: videoId,
         aspectRatio: aspectRatio,
         autoPlay: autoPlay,
+        showControls: showControls,
         fitFullScreen: fitFullScreen,
+        coverMode: coverMode,
         interactive: interactive,
       ),
     );

@@ -6,6 +6,9 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 /// Uses `youtube_player_iframe` and `webview_flutter_android` to play videos
 /// completely inside the CRICIT app without launching external YouTube or browser.
 ///
+/// Supports edge-to-edge full-bleed reel mode (zero letterbox/pillarbox) using
+/// `OverflowBox` and `ClipRect` viewport scaling.
+///
 /// In headless unit/widget test environments (e.g. `flutter test` on desktop/CI),
 /// it safely returns a mock presentation to avoid missing platform channel errors.
 class PlatformYouTubePlayer extends StatefulWidget {
@@ -14,14 +17,18 @@ class PlatformYouTubePlayer extends StatefulWidget {
     required this.videoId,
     this.aspectRatio,
     this.autoPlay = false,
+    this.showControls = true,
     this.fitFullScreen = false,
+    this.coverMode = true,
     this.interactive = true,
   });
 
   final String videoId;
   final double? aspectRatio;
   final bool autoPlay;
+  final bool showControls;
   final bool fitFullScreen;
+  final bool coverMode;
   final bool interactive;
 
   @override
@@ -47,13 +54,13 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
     _controller = YoutubePlayerController.fromVideoId(
       videoId: widget.videoId,
       autoPlay: widget.autoPlay,
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
+      params: YoutubePlayerParams(
+        showControls: widget.showControls,
+        showFullscreenButton: false,
         mute: false,
         enableJavaScript: true,
         showVideoAnnotations: false,
-        loop: false,
+        loop: widget.fitFullScreen,
       ),
     );
   }
@@ -80,6 +87,8 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveVideoRatio = widget.aspectRatio ?? (16 / 9);
+
     // Zero-crash mock representation for headless tests or desktop environments
     if (_isTestEnvironment || _controller == null) {
       return Container(
@@ -88,8 +97,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
         width: double.infinity,
         height: widget.fitFullScreen ? double.infinity : null,
         child: AspectRatio(
-          aspectRatio: widget.aspectRatio ??
-              (widget.fitFullScreen ? (9 / 16) : (16 / 9)),
+          aspectRatio: effectiveVideoRatio,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -115,20 +123,69 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       );
     }
 
-    final playerWidget = YoutubePlayer(
-      controller: _controller!,
-      aspectRatio: widget.aspectRatio ??
-          (widget.fitFullScreen ? (9 / 16) : (16 / 9)),
-      backgroundColor: Colors.black,
-    );
-
     if (widget.fitFullScreen) {
-      return Container(
-        color: Colors.black,
-        width: double.infinity,
-        height: double.infinity,
-        alignment: Alignment.center,
-        child: playerWidget,
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportW = constraints.maxWidth;
+          final viewportH = constraints.maxHeight;
+
+          if (widget.coverMode && viewportW > 0 && viewportH > 0) {
+            // Edge-to-edge reel cover mode:
+            // Calculate target dimensions so the video covers 100% of the viewport.
+            // When viewport is portrait (e.g. 9:19) and video is 16:9 landscape:
+            // targetHeight = viewportH, targetWidth = viewportH * effectiveVideoRatio.
+            // When viewport is wider than the video ratio:
+            // targetWidth = viewportW, targetHeight = viewportW / effectiveVideoRatio.
+            final viewportRatio = viewportW / viewportH;
+            final double targetWidth;
+            final double targetHeight;
+
+            if (viewportRatio < effectiveVideoRatio) {
+              // Viewport is taller than video (typical portrait phone): scale by height
+              targetHeight = viewportH;
+              targetWidth = viewportH * effectiveVideoRatio;
+            } else {
+              // Viewport is wider than video: scale by width
+              targetWidth = viewportW;
+              targetHeight = viewportW / effectiveVideoRatio;
+            }
+
+            return ClipRect(
+              child: SizedBox(
+                width: viewportW,
+                height: viewportH,
+                child: OverflowBox(
+                  minWidth: targetWidth,
+                  maxWidth: targetWidth,
+                  minHeight: targetHeight,
+                  maxHeight: targetHeight,
+                  alignment: Alignment.center,
+                  child: YoutubePlayer(
+                    controller: _controller!,
+                    aspectRatio: effectiveVideoRatio,
+                    backgroundColor: Colors.black,
+                  ),
+                ),
+              ),
+            );
+          }
+
+          // Fit mode: standard letterboxed/contain view
+          return Container(
+            color: Colors.black,
+            width: viewportW,
+            height: viewportH,
+            alignment: Alignment.center,
+            child: AspectRatio(
+              aspectRatio: effectiveVideoRatio,
+              child: YoutubePlayer(
+                controller: _controller!,
+                aspectRatio: effectiveVideoRatio,
+                backgroundColor: Colors.black,
+              ),
+            ),
+          );
+        },
       );
     }
 
@@ -136,8 +193,12 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       color: Colors.black,
       width: double.infinity,
       child: AspectRatio(
-        aspectRatio: widget.aspectRatio ?? (16 / 9),
-        child: playerWidget,
+        aspectRatio: effectiveVideoRatio,
+        child: YoutubePlayer(
+          controller: _controller!,
+          aspectRatio: effectiveVideoRatio,
+          backgroundColor: Colors.black,
+        ),
       ),
     );
   }

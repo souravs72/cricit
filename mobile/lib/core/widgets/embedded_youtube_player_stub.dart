@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Fallback / mobile stub implementation for embedded YouTube player.
+/// Fallback / stub implementation for embedded YouTube player.
 /// Avoids webview_flutter assertion crashes during unit tests and on non-web environments.
 class PlatformYouTubePlayer extends StatefulWidget {
   const PlatformYouTubePlayer({
@@ -10,14 +10,18 @@ class PlatformYouTubePlayer extends StatefulWidget {
     required this.videoId,
     this.aspectRatio,
     this.autoPlay = false,
+    this.showControls = true,
     this.fitFullScreen = false,
+    this.coverMode = true,
     this.interactive = true,
   });
 
   final String videoId;
   final double? aspectRatio;
   final bool autoPlay;
+  final bool showControls;
   final bool fitFullScreen;
+  final bool coverMode;
   final bool interactive;
 
   @override
@@ -51,11 +55,11 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Play Video: ${widget.videoId}',
+                'Play Video (${widget.videoId})',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
                 ),
               ),
             ],
@@ -66,16 +70,16 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
 
     if (widget.fitFullScreen) {
       return Container(
+        color: Colors.black,
         width: double.infinity,
         height: double.infinity,
-        color: Colors.black,
         child: content,
       );
     }
 
     return Container(
-      width: double.infinity,
       color: Colors.black,
+      width: double.infinity,
       child: AspectRatio(
         aspectRatio: widget.aspectRatio ?? (16 / 9),
         child: content,
