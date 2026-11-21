@@ -1,14 +1,45 @@
-# Direct Let's Encrypt (no Cloudflare). Hostnames come from container env.
-{
-	email {$CRICIT_TLS_EMAIL}
-}
-
-{$CRICIT_API_HOST} {
+:80 {
 	encode zstd gzip
-	reverse_proxy api:8000
-}
 
-{$CRICIT_ADMIN_HOST} {
-	encode zstd gzip
-	reverse_proxy admin:3000
+	redir /admin /overview
+	redir /admin/ /overview
+
+	# 1. Cricit API & System Endpoints
+	handle /v1/* {
+		reverse_proxy api:8000
+	}
+	handle /admin/v1/* {
+		reverse_proxy api:8000
+	}
+	handle /health {
+		reverse_proxy api:8000
+	}
+	handle /ready {
+		reverse_proxy api:8000
+	}
+	handle /docs* {
+		reverse_proxy api:8000
+	}
+	handle /openapi.json {
+		reverse_proxy api:8000
+	}
+
+	# 2. X-Train APIs & Portal (Dedicated paths and Host header)
+	@xtrain host xtrain.*
+	handle @xtrain {
+		reverse_proxy xtrain_web_portal:4002
+	}
+	handle /api/gym/* {
+		uri strip_prefix /api/gym
+		reverse_proxy xtrain_cloud_backend:4000
+	}
+	handle /xtrain* {
+		uri strip_prefix /xtrain
+		reverse_proxy xtrain_web_portal:4002
+	}
+
+	# 3. Cricit Admin Newsroom (Default Root for all web features)
+	handle {
+		reverse_proxy admin:3000
+	}
 }

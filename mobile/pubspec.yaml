@@ -21,6 +21,10 @@ dependencies:
   url_launcher: ^6.3.1
   share_plus: ^10.1.2
   shared_preferences: ^2.3.3
+  youtube_player_iframe: ^6.0.2
+  webview_flutter_web: ^0.2.3+4
+  webview_flutter_platform_interface: ^2.15.1
+  web: ^1.1.2
   # Fonts are bundled under fonts/ so first paint works on patchy data.
   # Later tickets:
   # firebase_core / firebase_auth / firebase_messaging / firebase_app_check  (T22, T34)

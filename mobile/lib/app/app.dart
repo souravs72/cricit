@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,8 +7,30 @@ import '../core/settings/settings_controller.dart';
 import 'router.dart';
 import 'theme.dart';
 
+/// Custom scroll behavior enabling drag & swipe across touch, mouse, and trackpad.
+class CricitScrollBehavior extends MaterialScrollBehavior {
+  const CricitScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+      };
+}
+
 class CricitApp extends ConsumerWidget {
   const CricitApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const _CricitAppRoot();
+  }
+}
+
+class _CricitAppRoot extends ConsumerWidget {
+  const _CricitAppRoot();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,13 +40,15 @@ class CricitApp extends ConsumerWidget {
         title: 'CRICIT',
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
-        home: const SplashScreen(),
+        scrollBehavior: const CricitScrollBehavior(),
+        routes: {'/': (_) => const SplashScreen(), '/home': (_) => const SplashScreen()},
       ),
       error: (e, _) => MaterialApp(
         title: 'CRICIT',
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
-        home: const SplashScreen(),
+        scrollBehavior: const CricitScrollBehavior(),
+        routes: {'/': (_) => const SplashScreen(), '/home': (_) => const SplashScreen()},
       ),
       data: (_) {
         final settings = ref.watch(settingsProvider);
@@ -31,6 +56,7 @@ class CricitApp extends ConsumerWidget {
         return MaterialApp.router(
           title: 'CRICIT',
           debugShowCheckedModeBanner: false,
+          scrollBehavior: const CricitScrollBehavior(),
           theme: cricitTheme(brightness: Brightness.light, hindi: hindi),
           darkTheme: cricitTheme(brightness: Brightness.dark, hindi: hindi),
           themeMode: settings.themeMode,

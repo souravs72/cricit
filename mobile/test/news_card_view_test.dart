@@ -34,4 +34,44 @@ void main() {
     expect(find.textContaining('ESPNcricinfo'), findsOneWidget);
     expect(find.byTooltip('Share this card'), findsOneWidget);
   });
+
+  testWidgets('tapping Play in App on video card starts embedded playback',
+      (tester) async {
+    final videoCard = NewsCard(
+      id: 'video-card-1',
+      kind: 'video',
+      category: 'international',
+      headline: 'Siraj four-fer rips through top order',
+      summary: 'BCCI highlights.',
+      publishedAt: DateTime.utc(2026, 10, 20, 11, 30),
+      shareUrl: 'https://cricit.app/p/video-card-1',
+      sourceName: 'BCCI',
+      videoId: 'xtn0lf5TY84',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightTheme,
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: NewsCardView(card: videoCard),
+        ),
+      ),
+    );
+
+    expect(find.text('Play in App'), findsOneWidget);
+
+    // Tap to play
+    await tester.tap(find.text('Play in App'));
+    await tester.pumpAndSettle();
+
+    // Now EmbeddedYouTubePlayer is active and close button is visible
+    expect(find.byIcon(Icons.close), findsOneWidget);
+
+    // Tap close to return to thumbnail
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    expect(find.text('Play in App'), findsOneWidget);
+  });
 }

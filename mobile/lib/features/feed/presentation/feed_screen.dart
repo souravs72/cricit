@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/settings/settings_controller.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
+import '../../../core/widgets/in_app_web_sheet.dart';
 import '../../../core/widgets/loading_skeleton.dart';
 import '../../../l10n/l10n.dart';
 import '../domain/news_card.dart';
 import 'feed_controller.dart';
 import 'news_card_view.dart';
+import 'video_short_view.dart';
 
 const _tabs = ['feed', 'video', 'domestic', 'international', 'nxtspot'];
 
@@ -22,6 +24,7 @@ class FeedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = L10n.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final labels = [
       l10n.tabFeed,
       l10n.tabVideo,
@@ -35,11 +38,21 @@ class FeedScreen extends ConsumerWidget {
         children: [
           Material(
             color: Theme.of(context).scaffoldBackgroundColor,
+            elevation: isDark ? 0 : 1,
+            shadowColor: Colors.black12,
             child: SafeArea(
               bottom: false,
               child: TabBar(
                 isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                indicatorColor: CricitColors.outfield,
+                indicatorWeight: 3,
+                labelColor: isDark ? CricitColors.outfieldDark : CricitColors.outfield,
+                unselectedLabelColor: isDark ? CricitColors.inkMutedDark : CricitColors.inkMuted,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                 tabs: [for (final l in labels) Tab(text: l)],
+                onTap: (_) => HapticFeedback.selectionClick(),
               ),
             ),
           ),
@@ -72,6 +85,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
   final _page = PageController();
   final _hindiOverride = <String, bool>{};
   var _reportedInitialView = false;
+  var _currentIndex = 0;
 
   @override
   void dispose() {
@@ -79,14 +93,37 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
     super.dispose();
   }
 
+  void _goToNext(int total) {
+    if (_currentIndex < total - 1 && _page.hasClients) {
+      HapticFeedback.lightImpact();
+      _page.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _goToPrevious() {
+    if (_currentIndex > 0 && _page.hasClients) {
+      HapticFeedback.lightImpact();
+      _page.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
   Future<void> _open(NewsCard card) async {
-    final uri = card.isVideo && card.videoId != null
-        ? Uri.parse('https://www.youtube.com/watch?v=${card.videoId}')
-        : card.url == null
-            ? null
-            : Uri.parse(card.url!);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    await HapticFeedback.lightImpact();
+    if (!mounted) return;
+    if (card.url == null) return;
+    // Embed news reading in-app via modal sheet so the user remains in CRICIT
+    await InAppWebSheet.show(
+      context,
+      url: card.url!,
+      sourceName: card.sourceName ?? 'CRICIT',
+      headline: card.headlineFor(hindi: _hindiOverride[card.id] ?? false),
+    );
   }
 
   @override
@@ -127,35 +164,92 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
       case FeedStatus.empty:
         body = EmptyState(title: l10n.noStories, body: l10n.noStoriesBody);
       case FeedStatus.data:
-        body = RefreshIndicator(
-          onRefresh: ctrl.refresh,
-          child: PageView.builder(
-            controller: _page,
-            scrollDirection: Axis.vertical,
-            physics: AlwaysScrollableScrollPhysics(
-              parent: MediaQuery.disableAnimationsOf(context)
-                  ? const ClampingScrollPhysics()
-                  : const PageScrollPhysics(),
-            ),
-            itemCount: snap.cards.length,
-            onPageChanged: ctrl.onPageChanged,
-            itemBuilder: (context, i) {
-              final card = snap.cards[i];
-              final hindi = _hindiOverride[card.id] ?? settings.isHindi;
-              return NewsCardView(
-                card: card,
-                saved: settings.bookmarks.contains(card.id),
-                forceHindi: hindi,
-                indexLabel: 'Story ${i + 1} of ${snap.cards.length}',
-                onOpenSource: card.url == null ? null : () => _open(card),
-                onPlayVideo: card.isVideo ? () => _open(card) : null,
-                onToggleSave: () =>
-                    ref.read(settingsProvider.notifier).toggleBookmark(card.id),
-                onToggleLanguage: card.hasHindi
-                    ? () => setState(() => _hindiOverride[card.id] = !hindi)
-                    : null,
-              );
-            },
+        body = GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (details) {
+            final vx = details.primaryVelocity ?? 0;
+            if (vx < -150) {
+              _goToNext(snap.cards.length);
+            } else if (vx > 150) {
+              if (_currentIndex > 0) _goToPrevious();
+            }
+          },
+          onVerticalDragEnd: (details) {
+            final vy = details.primaryVelocity ?? 0;
+            if (vy < -250) {
+              _goToNext(snap.cards.length);
+            } else if (vy > 250) {
+              if (_currentIndex > 0) {
+                _goToPrevious();
+              } else {
+                HapticFeedback.mediumImpact();
+                ctrl.refresh();
+              }
+            }
+          },
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: _page,
+                scrollDirection: Axis.vertical,
+                physics: AlwaysScrollableScrollPhysics(
+                  parent: MediaQuery.disableAnimationsOf(context)
+                      ? const ClampingScrollPhysics()
+                      : const PageScrollPhysics(),
+                ),
+                itemCount: snap.cards.length,
+                onPageChanged: (idx) {
+                  setState(() => _currentIndex = idx);
+                  HapticFeedback.selectionClick();
+                  ctrl.onPageChanged(idx);
+                },
+                itemBuilder: (context, i) {
+                  final card = snap.cards[i];
+                  final hindi = _hindiOverride[card.id] ?? settings.isHindi;
+
+                  // If Video tab, render full-height VideoShortView.
+                  // PageView.builder handles horizontal swipes natively with smooth physics.
+                  if (widget.tab == 'video' || (card.isVideo && card.summary.isEmpty)) {
+                    return VideoShortView(
+                      card: card,
+                      saved: settings.bookmarks.contains(card.id),
+                      onToggleSave: () =>
+                          ref.read(settingsProvider.notifier).toggleBookmark(card.id),
+                      indexLabel: 'Video Short ${i + 1} of ${snap.cards.length}',
+                    );
+                  }
+
+                  return NewsCardView(
+                    card: card,
+                    saved: settings.bookmarks.contains(card.id),
+                    forceHindi: hindi,
+                    indexLabel: 'Story ${i + 1} of ${snap.cards.length}',
+                    onOpenSource: card.url == null ? null : () => _open(card),
+                    onPlayVideo: card.isVideo ? () => _open(card) : null,
+                    onToggleSave: () =>
+                        ref.read(settingsProvider.notifier).toggleBookmark(card.id),
+                    onToggleLanguage: card.hasHindi
+                        ? () => setState(() => _hindiOverride[card.id] = !hindi)
+                        : null,
+                  );
+                },
+              ),
+
+              // Segmented story timeline & deck navigation bar at top
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _DeckTopBar(
+                  currentIndex: _currentIndex,
+                  total: snap.cards.length,
+                  onPrevious: _currentIndex > 0 ? _goToPrevious : null,
+                  onNext: _currentIndex < snap.cards.length - 1
+                      ? () => _goToNext(snap.cards.length)
+                      : null,
+                ),
+              ),
+            ],
           ),
         );
     }
@@ -177,15 +271,183 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
             right: 0,
             child: Center(
               child: FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  backgroundColor: CricitColors.scoreboard,
+                  foregroundColor: CricitColors.ink,
+                  elevation: 4,
+                ),
                 onPressed: () {
+                  HapticFeedback.mediumImpact();
                   ctrl.revealNewPosts();
                   if (_page.hasClients) _page.jumpToPage(0);
                 },
-                child: Text(l10n.newPosts),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.arrow_upward, size: 14),
+                    const SizedBox(width: 4),
+                    Text(l10n.newPosts),
+                  ],
+                ),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+class _DeckTopBar extends StatelessWidget {
+  const _DeckTopBar({
+    required this.currentIndex,
+    required this.total,
+    this.onPrevious,
+    this.onNext,
+  });
+
+  final int currentIndex;
+  final int total;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    if (total <= 1) return const SizedBox.shrink();
+
+    // Max 18 segment dashes for clear readability across screen widths
+    final displaySegments = total.clamp(1, 18);
+    final activeSegment = ((currentIndex / (total - 1).clamp(1, 9999)) * (displaySegments - 1)).round();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(CricitSpace.md, CricitSpace.xs, CricitSpace.md, 4),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withValues(alpha: 0.65),
+            Colors.black.withValues(alpha: 0.2),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.7, 1.0],
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Segmented Progress Bar
+          Row(
+            children: List.generate(displaySegments, (index) {
+              final isFilled = index <= activeSegment;
+              final isCurrent = index == activeSegment;
+              return Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  height: 2.5,
+                  decoration: BoxDecoration(
+                    color: isCurrent
+                        ? CricitColors.scoreboard
+                        : (isFilled ? Colors.white : Colors.white.withValues(alpha: 0.25)),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 4),
+          // Subtle Deck Info Row with Swipe Cue
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Previous story arrow button
+              GestureDetector(
+                onTap: onPrevious,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: onPrevious != null
+                        ? Colors.black.withValues(alpha: 0.35)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.keyboard_arrow_up_rounded,
+                        size: 16,
+                        color: onPrevious != null ? Colors.white : Colors.transparent,
+                      ),
+                      if (onPrevious != null)
+                        const Text(
+                          ' Prev',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Deck Counter Pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(CricitRadius.full),
+                ),
+                child: Text(
+                  '${currentIndex + 1} / $total',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              // Next story button / swipe cue
+              GestureDetector(
+                onTap: onNext,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: onNext != null
+                        ? Colors.black.withValues(alpha: 0.35)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (onNext != null)
+                        Text(
+                          currentIndex == 0 ? 'Swipe left ' : 'Next ',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 14,
+                        color: onNext != null ? Colors.white : Colors.transparent,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

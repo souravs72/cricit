@@ -16,16 +16,23 @@ import 'theme.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final onboarded = ref.read(settingsProvider).onboarded;
   return GoRouter(
-    initialLocation: onboarded ? '/home' : '/welcome',
+    initialLocation: '/',
     redirect: (context, state) {
       final settings = ref.read(settingsProvider);
       final loc = state.matchedLocation;
+      if (loc == '/') {
+        return settings.onboarded ? '/home' : '/welcome';
+      }
       if (settings.onboarded && loc == '/welcome') {
         return '/home';
       }
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, __) => onboarded ? const FeedScreen() : const WelcomeScreen(),
+      ),
       GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
       GoRoute(path: '/signin', builder: (_, __) => const PhoneSignInScreen()),
       GoRoute(

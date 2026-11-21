@@ -5,6 +5,5 @@ import 'app/app.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // T22: Firebase.initializeApp() + App Check before runApp.
   runApp(const ProviderScope(child: CricitApp()));
 }
