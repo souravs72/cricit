@@ -288,23 +288,31 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                           final shadowAlpha = (1.0 - clamped.abs()).clamp(0.2, 0.65);
                           final shadowOffsetY = clamped < 0 ? -8.0 : 8.0;
 
+                          final isVideo = widget.tab == 'video';
+
                           return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: shadowAlpha),
-                                  blurRadius: 22,
-                                  spreadRadius: 3,
-                                  offset: Offset(0, shadowOffsetY),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: child,
-                            ),
+                            margin: isVideo
+                                ? EdgeInsets.zero
+                                : const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: isVideo
+                                ? null
+                                : BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: shadowAlpha),
+                                        blurRadius: 22,
+                                        spreadRadius: 3,
+                                        offset: Offset(0, shadowOffsetY),
+                                      ),
+                                    ],
+                                  ),
+                            child: isVideo
+                                ? child
+                                : ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: child,
+                                  ),
                           );
                         },
                         child: cardWidget,

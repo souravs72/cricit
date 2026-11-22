@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
@@ -58,6 +60,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
 
   void _initController() {
     final shouldAutoPlay = widget.isActive;
+    final isPassiveReel = widget.fitFullScreen || !widget.interactive;
     _controller = YoutubePlayerController.fromVideoId(
       videoId: widget.videoId,
       autoPlay: shouldAutoPlay,
@@ -69,6 +72,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
         showVideoAnnotations: false,
         loop: widget.fitFullScreen,
         playsInline: true,
+        pointerEvents: isPassiveReel ? PointerEvents.none : PointerEvents.auto,
       ),
     );
 
@@ -145,6 +149,8 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       );
     }
 
+    final isPassiveReel = widget.fitFullScreen || !widget.interactive;
+
     if (widget.fitFullScreen) {
       return LayoutBuilder(
         builder: (context, constraints) {
@@ -156,17 +162,23 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
 
           if (widget.coverMode) {
             // Edge-to-edge reel cover mode:
-            // Match the container's exact aspect ratio so YoutubePlayer's internal
-            // placeholder and OverlayPortal fill 100% of the viewport width and height.
+            // Match the container's exact aspect ratio so YoutubePlayer fills 100%
+            // of the viewport without letterboxing or black margins.
             final screenRatio = viewportW / viewportH;
             return SizedBox(
               width: viewportW,
               height: viewportH,
-              child: YoutubePlayer(
-                key: ValueKey('yt-${widget.videoId}-cover'),
-                controller: _controller!,
-                aspectRatio: screenRatio,
-                backgroundColor: Colors.black,
+              child: IgnorePointer(
+                ignoring: isPassiveReel,
+                child: YoutubePlayer(
+                  key: ValueKey('yt-${widget.videoId}-cover'),
+                  controller: _controller!,
+                  aspectRatio: screenRatio,
+                  backgroundColor: Colors.black,
+                  autoFullScreen: false,
+                  enableFullScreenOnVerticalDrag: false,
+                  gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+                ),
               ),
             );
           }
@@ -179,11 +191,17 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
             alignment: Alignment.center,
             child: AspectRatio(
               aspectRatio: effectiveVideoRatio,
-              child: YoutubePlayer(
-                key: ValueKey('yt-${widget.videoId}-fit'),
-                controller: _controller!,
-                aspectRatio: effectiveVideoRatio,
-                backgroundColor: Colors.black,
+              child: IgnorePointer(
+                ignoring: isPassiveReel,
+                child: YoutubePlayer(
+                  key: ValueKey('yt-${widget.videoId}-fit'),
+                  controller: _controller!,
+                  aspectRatio: effectiveVideoRatio,
+                  backgroundColor: Colors.black,
+                  autoFullScreen: false,
+                  enableFullScreenOnVerticalDrag: false,
+                  gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+                ),
               ),
             ),
           );
@@ -200,6 +218,9 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
           controller: _controller!,
           aspectRatio: effectiveVideoRatio,
           backgroundColor: Colors.black,
+          autoFullScreen: false,
+          enableFullScreenOnVerticalDrag: false,
+          gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
         ),
       ),
     );
