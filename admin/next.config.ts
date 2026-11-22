@@ -20,6 +20,20 @@ const nextConfig: NextConfig = {
   typescript: { ignoreBuildErrors: true },
   // Cloudflare quick tunnels so `next dev` will hydrate (and serve fonts) on the public host.
   allowedDevOrigins: ["*.trycloudflare.com"],
+  async redirects() {
+    return [
+      {
+        source: "/admin",
+        destination: "/overview",
+        permanent: false,
+      },
+      {
+        source: "/admin/:path*",
+        destination: "/:path*",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

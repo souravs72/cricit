@@ -141,24 +141,28 @@ class FeedController extends Notifier<FeedSnapshot> {
       // Infinite extension for video shorts tab so user never runs out of video reels
       if (tab == 'video' && state.cards.isNotEmpty) {
         state = state.copyWith(loadingMore: true);
-        final cycleCount = state.cards.length ~/ 4 + 1;
-        final baseCards = state.cards.take(4).toList();
-        final extended = baseCards.map((c) => NewsCard(
-          id: '${c.id}_loop_$cycleCount',
-          kind: c.kind,
-          category: c.category,
-          headline: c.headline,
-          headlineHi: c.headlineHi,
-          summary: c.summary,
-          summaryHi: c.summaryHi,
-          publishedAt: c.publishedAt,
-          shareUrl: c.shareUrl,
-          image: c.image,
-          videoId: c.videoId,
-          sourceName: c.sourceName,
-          url: c.url,
-          tags: c.tags,
-        ),).toList();
+        final totalBase = state.cards.length < 20 ? state.cards.length : 20;
+        final baseCards = state.cards.take(totalBase).toList();
+        final cycleCount = state.cards.length ~/ totalBase + 1;
+        final extended = baseCards.map((c) {
+          final cleanBaseId = c.id.split('_loop_').first;
+          return NewsCard(
+            id: '${cleanBaseId}_loop_${cycleCount}_${c.videoId}',
+            kind: c.kind,
+            category: c.category,
+            headline: c.headline,
+            headlineHi: c.headlineHi,
+            summary: c.summary,
+            summaryHi: c.summaryHi,
+            publishedAt: c.publishedAt,
+            shareUrl: c.shareUrl,
+            image: c.image,
+            videoId: c.videoId,
+            sourceName: c.sourceName,
+            url: c.url,
+            tags: c.tags,
+          );
+        }).toList();
         state = state.copyWith(
           cards: [...state.cards, ...extended],
           loadingMore: false,

@@ -116,7 +116,8 @@ class _VideoShortViewState extends State<VideoShortView> {
         widget.onSwipeNext != null || widget.onSwipePrevious != null;
 
     final isShort = (card.url != null && card.url!.contains('/shorts/')) ||
-        card.tags.any((t) => t.toLowerCase().contains('short'));
+        card.tags.any((t) => t.toLowerCase().contains('short')) ||
+        card.kind == 'video';
     final videoRatio = isShort ? (9 / 16) : (16 / 9);
     final isActuallyPlaying = widget.isActive && !_userPaused;
 
@@ -135,6 +136,7 @@ class _VideoShortViewState extends State<VideoShortView> {
                 fit: StackFit.expand,
                 children: [
                   EmbeddedYouTubePlayer(
+                    key: ValueKey('yt-${card.id}-${card.videoId}'),
                     videoId: videoId,
                     aspectRatio: videoRatio,
                     fitFullScreen: true,

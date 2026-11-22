@@ -69,4 +69,48 @@ void main() {
     expect(find.text('Gill 104 keeps India in front at Perth'), findsOneWidget);
     expect(find.textContaining('1 /'), findsOneWidget);
   });
+
+  testWidgets(
+      'video tab renders clean reel without story progress bar and supports vertical swipe',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'onboarded': true});
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedRepositoryProvider.overrideWith(
+            (ref) => _MockFeedRepository(),
+          ),
+        ],
+        child: const CricitApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Switch to 'Video' tab
+    await tester.tap(find.text('Video'));
+    await tester.pumpAndSettle();
+
+    // In the Video tab, horizontal story deck top bar should be hidden
+    expect(find.textContaining('Swipe left'), findsNothing);
+
+    // Verify first video is rendered
+    expect(
+      find.textContaining('Bumrah’s 147 kph yorker'),
+      findsOneWidget,
+    );
+
+    // Swipe vertically to next video card
+    await tester.drag(
+      find.textContaining('Bumrah’s 147 kph yorker'),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+
+    // Next video in pool should be visible
+    expect(
+      find.textContaining('Virat Kohli’s masterclass nets session'),
+      findsOneWidget,
+    );
+  });
 }

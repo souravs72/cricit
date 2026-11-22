@@ -142,49 +142,28 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
         builder: (context, constraints) {
           final viewportW = constraints.maxWidth;
           final viewportH = constraints.maxHeight;
+          if (viewportW <= 0 || viewportH <= 0) {
+            return const SizedBox.expand();
+          }
 
-          if (widget.coverMode && viewportW > 0 && viewportH > 0) {
+          if (widget.coverMode) {
             // Edge-to-edge reel cover mode:
-            // Calculate target dimensions so the video covers 100% of the viewport.
-            // When viewport is portrait (e.g. 9:19) and video is 16:9 landscape:
-            // targetHeight = viewportH, targetWidth = viewportH * effectiveVideoRatio.
-            // When viewport is wider than the video ratio:
-            // targetWidth = viewportW, targetHeight = viewportW / effectiveVideoRatio.
-            final viewportRatio = viewportW / viewportH;
-            final double targetWidth;
-            final double targetHeight;
-
-            if (viewportRatio < effectiveVideoRatio) {
-              // Viewport is taller than video (typical portrait phone): scale by height
-              targetHeight = viewportH;
-              targetWidth = viewportH * effectiveVideoRatio;
-            } else {
-              // Viewport is wider than video: scale by width
-              targetWidth = viewportW;
-              targetHeight = viewportW / effectiveVideoRatio;
-            }
-
-            return ClipRect(
-              child: SizedBox(
-                width: viewportW,
-                height: viewportH,
-                child: OverflowBox(
-                  minWidth: targetWidth,
-                  maxWidth: targetWidth,
-                  minHeight: targetHeight,
-                  maxHeight: targetHeight,
-                  alignment: Alignment.center,
-                  child: YoutubePlayer(
-                    controller: _controller!,
-                    aspectRatio: effectiveVideoRatio,
-                    backgroundColor: Colors.black,
-                  ),
-                ),
+            // Match the container's exact aspect ratio so YoutubePlayer's internal
+            // placeholder and OverlayPortal fill 100% of the viewport width and height.
+            final screenRatio = viewportW / viewportH;
+            return SizedBox(
+              width: viewportW,
+              height: viewportH,
+              child: YoutubePlayer(
+                key: ValueKey('yt-${widget.videoId}-cover'),
+                controller: _controller!,
+                aspectRatio: screenRatio,
+                backgroundColor: Colors.black,
               ),
             );
           }
 
-          // Fit mode: standard letterboxed/contain view
+          // Fit mode: standard uncropped letterboxed/contain view
           return Container(
             color: Colors.black,
             width: viewportW,
@@ -193,6 +172,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
             child: AspectRatio(
               aspectRatio: effectiveVideoRatio,
               child: YoutubePlayer(
+                key: ValueKey('yt-${widget.videoId}-fit'),
                 controller: _controller!,
                 aspectRatio: effectiveVideoRatio,
                 backgroundColor: Colors.black,

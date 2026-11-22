@@ -244,6 +244,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
 
                       if (widget.tab == 'video' || (card.isVideo && card.summary.isEmpty)) {
                         cardWidget = VideoShortView(
+                          key: ValueKey('short-${card.id}-${card.videoId}'),
                           card: card,
                           saved: settings.bookmarks.contains(card.id),
                           onToggleSave: () =>
@@ -258,6 +259,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                         );
                       } else {
                         cardWidget = NewsCardView(
+                          key: ValueKey('story-${card.id}'),
                           card: card,
                           saved: settings.bookmarks.contains(card.id),
                           forceHindi: hindi,
@@ -271,7 +273,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                         );
                       }
 
-                      // Inshorts Deck Slide Transformation
+                      // Tactile Physical Card Deck Swipe Transformation
                       return AnimatedBuilder(
                         animation: _page,
                         builder: (context, child) {
@@ -283,40 +285,26 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                           }
 
                           final clamped = pageOffset.clamp(-1.0, 1.0);
-                          if (MediaQuery.disableAnimationsOf(context) || clamped.abs() < 0.001) {
-                            return child!;
-                          }
+                          final shadowAlpha = (1.0 - clamped.abs()).clamp(0.2, 0.65);
+                          final shadowOffsetY = clamped < 0 ? -8.0 : 8.0;
 
-                          // When swiping up:
-                          // clamped > 0: Card is moving upwards (outgoing card)
-                          // Scale gently down and dim
-                          if (clamped > 0) {
-                            final scale = (1.0 - (clamped * 0.06)).clamp(0.88, 1.0);
-                            final opacity = (1.0 - (clamped * 0.35)).clamp(0.45, 1.0);
-                            return Transform.scale(
-                              scale: scale,
-                              child: Opacity(
-                                opacity: opacity,
-                                child: child,
-                              ),
-                            );
-                          }
-
-                          // clamped < 0: Card is sliding in from bottom (incoming card)
-                          // Elevation shadow creates distinct physical slide boundary
-                          final shadowAlpha = (clamped.abs() * 0.45).clamp(0.0, 0.45);
                           return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                             decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: shadowAlpha),
-                                  blurRadius: 18,
-                                  spreadRadius: 2,
-                                  offset: const Offset(0, -6),
+                                  blurRadius: 22,
+                                  spreadRadius: 3,
+                                  offset: Offset(0, shadowOffsetY),
                                 ),
                               ],
                             ),
-                            child: child,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: child,
+                            ),
                           );
                         },
                         child: cardWidget,
@@ -324,20 +312,21 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                     },
                   ),
 
-                  // Segmented story timeline & deck navigation bar at top
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: _DeckTopBar(
-                      currentIndex: _currentIndex,
-                      total: snap.cards.length,
-                      onPrevious: _currentIndex > 0 ? _goToPrevious : null,
-                      onNext: _currentIndex < snap.cards.length - 1
-                          ? () => _goToNext(snap.cards.length)
-                          : null,
+                  // Segmented story timeline & deck navigation bar at top (stories only, not video reels)
+                  if (widget.tab != 'video')
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: _DeckTopBar(
+                        currentIndex: _currentIndex,
+                        total: snap.cards.length,
+                        onPrevious: _currentIndex > 0 ? _goToPrevious : null,
+                        onNext: _currentIndex < snap.cards.length - 1
+                            ? () => _goToNext(snap.cards.length)
+                            : null,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
