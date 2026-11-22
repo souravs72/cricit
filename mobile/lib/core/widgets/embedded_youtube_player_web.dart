@@ -76,8 +76,9 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
     _registeredTypes.add(_viewType);
 
     final vId = widget.videoId;
-    final auto = (widget.isActive && widget.autoPlay) ? '1' : '0';
-    final mute = (!widget.isActive || widget.isPreload) ? '1' : '0';
+    final auto = widget.isActive ? '1' : '0';
+    // Mute must be 1 on initial load so browser autoplay policy allows immediate zero-click playback
+    const mute = '1';
     final controls = widget.showControls ? '1' : '0';
     final loop = widget.fitFullScreen ? '1' : '0';
     final interactive = widget.fitFullScreen ? false : widget.interactive;

@@ -57,19 +57,26 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   }
 
   void _initController() {
-    final shouldAutoPlay = widget.isActive && widget.autoPlay;
+    final shouldAutoPlay = widget.isActive;
     _controller = YoutubePlayerController.fromVideoId(
       videoId: widget.videoId,
       autoPlay: shouldAutoPlay,
       params: YoutubePlayerParams(
         showControls: widget.showControls,
         showFullscreenButton: false,
-        mute: !widget.isActive,
+        mute: true, // Start muted so Android WebView never blocks autoplay
         enableJavaScript: true,
         showVideoAnnotations: false,
         loop: widget.fitFullScreen,
+        playsInline: true,
       ),
     );
+
+    _controller!.listen((value) {
+      if (value.playerState == PlayerState.playing && widget.isActive) {
+        _controller!.unMute();
+      }
+    });
   }
 
   @override
@@ -79,13 +86,14 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       if (widget.videoId != oldWidget.videoId) {
         if (widget.isActive) {
           _controller!.loadVideoById(videoId: widget.videoId);
+          _controller!.unMute();
         } else {
           _controller!.cueVideoById(videoId: widget.videoId);
         }
       } else if (widget.isActive != oldWidget.isActive) {
         if (widget.isActive) {
-          _controller!.unMute();
           _controller!.playVideo();
+          _controller!.unMute();
         } else {
           _controller!.pauseVideo();
         }

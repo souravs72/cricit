@@ -109,7 +109,7 @@ void main() {
 
     // Next video in pool should be visible
     expect(
-      find.textContaining('Virat Kohli’s masterclass nets session'),
+      find.textContaining('Virat Kohli’s signature cover drive'),
       findsOneWidget,
     );
   });
