@@ -49,7 +49,6 @@ class _VideoShortViewState extends State<VideoShortView> {
   String? _modeBadgeMessage;
   Timer? _badgeTimer;
   double _dragDeltaX = 0;
-  double _dragDeltaY = 0;
 
   @override
   void didUpdateWidget(VideoShortView oldWidget) {
@@ -109,17 +108,6 @@ class _VideoShortViewState extends State<VideoShortView> {
     _dragDeltaX = 0;
   }
 
-  void _handleVerticalDragEnd(DragEndDetails details) {
-    final vy = details.primaryVelocity ?? 0;
-    if (_dragDeltaY < -30 || vy < -100) {
-      HapticFeedback.lightImpact();
-      widget.onSwipeNext?.call();
-    } else if (_dragDeltaY > 30 || vy > 100) {
-      HapticFeedback.lightImpact();
-      widget.onSwipePrevious?.call();
-    }
-    _dragDeltaY = 0;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +144,7 @@ class _VideoShortViewState extends State<VideoShortView> {
                     coverMode: _coverMode,
                     autoPlay: true,
                     showControls: false,
-                    interactive: true,
+                    interactive: false,
                     isActive: isActuallyPlaying,
                     isPreload: widget.isPreload,
                   ),
@@ -533,9 +521,6 @@ class _VideoShortViewState extends State<VideoShortView> {
         onHorizontalDragStart: (_) => _dragDeltaX = 0,
         onHorizontalDragUpdate: (details) => _dragDeltaX += details.delta.dx,
         onHorizontalDragEnd: _handleDragEnd,
-        onVerticalDragStart: (_) => _dragDeltaY = 0,
-        onVerticalDragUpdate: (details) => _dragDeltaY += details.delta.dy,
-        onVerticalDragEnd: _handleVerticalDragEnd,
         child: content,
       );
     }

@@ -80,7 +80,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
     final mute = (!widget.isActive || widget.isPreload) ? '1' : '0';
     final controls = widget.showControls ? '1' : '0';
     final loop = widget.fitFullScreen ? '1' : '0';
-    final interactive = widget.interactive;
+    final interactive = widget.fitFullScreen ? false : widget.interactive;
 
     ui_web.platformViewRegistry.registerViewFactory(
       _viewType,
