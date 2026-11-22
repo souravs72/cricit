@@ -130,7 +130,7 @@ class _VideoShortViewState extends State<VideoShortView> {
           // 1. Full Screen Height & Width Video Canvas (100% full-bleed edge-to-edge reel)
           Positioned.fill(
             child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
+              behavior: HitTestBehavior.opaque,
               onTap: _togglePlayPause,
               onDoubleTap: _toggleCoverMode,
               child: Stack(

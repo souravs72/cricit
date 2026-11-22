@@ -82,6 +82,50 @@ void main() {
     expect(find.text('Reel Fill'), findsOneWidget);
   });
 
+  testWidgets('tapping video canvas toggles play and pause', (tester) async {
+    final card = NewsCard(
+      id: 'test-video-tap',
+      kind: 'video',
+      category: 'international',
+      headline: 'Bumrah magic delivery',
+      summary: 'Perth test match wicket.',
+      publishedAt: DateTime.now().toUtc(),
+      shareUrl: 'https://cricit.app/p/test-video-tap',
+      videoId: 'xtn0lf5TY84',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 430,
+            height: 932,
+            child: VideoShortView(card: card, isActive: true),
+          ),
+        ),
+      ),
+    );
+
+    // Initial state: playing, no pause overlay
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+
+    // Tap center of VideoShortView
+    await tester.tap(find.byType(VideoShortView));
+    // Must advance past kDoubleTapTimeout (300ms) because onDoubleTap is registered
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Now paused: play arrow overlay should appear
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+
+    // Tap again to resume
+    await tester.tap(find.byType(VideoShortView));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+  });
+
   testWidgets('swiping left on VideoShortView triggers onSwipeNext', (tester) async {
     bool nextTriggered = false;
     bool prevTriggered = false;

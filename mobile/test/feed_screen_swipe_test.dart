@@ -3,7 +3,9 @@ import 'package:cricit/features/feed/data/feed_repository.dart';
 import 'package:cricit/features/feed/data/fixture_feed.dart';
 import 'package:cricit/features/feed/domain/news_card.dart';
 import 'package:cricit/features/feed/presentation/news_card_view.dart';
+import 'package:cricit/features/feed/presentation/video_short_view.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -112,5 +114,78 @@ void main() {
       find.textContaining('Virat Kohli’s signature cover drive'),
       findsOneWidget,
     );
+
+    // Swipe vertically again to 3rd video card
+    await tester.drag(
+      find.textContaining('Virat Kohli’s signature cover drive'),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+
+    // 3rd video in pool should be visible
+    expect(
+      find.textContaining('Rohit Sharma’s signature pull shot'),
+      findsOneWidget,
+    );
+
+    // Swipe down to return to 2nd video card
+    await tester.drag(
+      find.textContaining('Rohit Sharma’s signature pull shot'),
+      const Offset(0, 500),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Virat Kohli’s signature cover drive'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'video tab renders edge-to-edge without card margin or outer ClipRRect, while stories use rounded card deck',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'onboarded': true});
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedRepositoryProvider.overrideWith(
+            (ref) => _MockFeedRepository(),
+          ),
+        ],
+        child: const CricitApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // On My Feed (stories), cards are wrapped in ClipRRect(borderRadius: 16)
+    final storyClipFinders = find.byType(ClipRRect);
+    expect(storyClipFinders, findsWidgets);
+
+    // Switch to Video tab
+    await tester.tap(find.text('Video'));
+    await tester.pumpAndSettle();
+
+    // On Video tab, VideoShortView is rendered edge-to-edge
+    expect(find.byType(VideoShortView), findsOneWidget);
+
+    // Tap on Video canvas to pause video
+    await tester.tap(find.byType(VideoShortView));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // When paused by user, play arrow icon overlay appears
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+
+    // Tap again to resume
+    await tester.tap(find.byType(VideoShortView));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+
+    // Tap Like button
+    await tester.tap(find.byIcon(Icons.favorite_border));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
   });
 }
