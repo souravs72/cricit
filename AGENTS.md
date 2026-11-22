@@ -18,6 +18,7 @@ Plan and tickets: `docs/tickets/T01…T40`. Work on **one ticket at a time**. Th
 3. Write tests first (they should fail), then the code.
 4. Run `make check` (or the app-specific target). It must pass before you say you're done.
 5. Summarise what changed and how you verified it. Never claim a check passed without running it.
+6. **Git-First Deployment Standard**: Always commit verified changes with conventional commits (`feat:`, `fix:`, `chore:`), push to remote (`git push origin main`), and deploy on the server exclusively by pulling from GitHub (`git pull origin main`). Never use `rsync` or ad-hoc source file copying to sync changes.
 
 ## Architecture rules (backend)
 
@@ -51,6 +52,7 @@ Plan and tickets: `docs/tickets/T01…T40`. Work on **one ticket at a time**. Th
 ## Never
 
 - Commit secrets, `.env`, keys, or real phone numbers. Log tokens, OTPs or phone numbers.
+- Use `rsync`, raw source `scp`, or ad-hoc file transfers to update code on the production server (always commit, push to GitHub, and pull on server).
 - Disable a test, lint rule or type check to make a build pass.
 - Store full article text (only our AI summary, headline, credit and link).
 - Download or re-host YouTube videos (official embedded player only).
