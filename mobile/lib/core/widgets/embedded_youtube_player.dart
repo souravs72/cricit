@@ -22,6 +22,7 @@ class EmbeddedYouTubePlayer extends StatelessWidget {
     this.interactive = true,
     this.isActive = true,
     this.isPreload = false,
+    this.onEnded,
   });
 
   final String videoId;
@@ -33,6 +34,9 @@ class EmbeddedYouTubePlayer extends StatelessWidget {
   final bool interactive;
   final bool isActive;
   final bool isPreload;
+
+  /// Called once when the video plays to its end (native mobile only).
+  final VoidCallback? onEnded;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,7 @@ class EmbeddedYouTubePlayer extends StatelessWidget {
         interactive: interactive,
         isActive: isActive,
         isPreload: isPreload,
+        onEnded: onEnded,
       ),
     );
   }

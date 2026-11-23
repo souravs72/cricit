@@ -30,6 +30,7 @@ class PlatformYouTubePlayer extends StatefulWidget {
     this.interactive = true,
     this.isActive = true,
     this.isPreload = false,
+    this.onEnded,
   });
 
   final String videoId;
@@ -41,6 +42,9 @@ class PlatformYouTubePlayer extends StatefulWidget {
   final bool interactive;
   final bool isActive;
   final bool isPreload;
+
+  /// Fired when the video finishes. When null the video replays instead.
+  final VoidCallback? onEnded;
 
   @override
   State<PlatformYouTubePlayer> createState() => _PlatformYouTubePlayerState();
@@ -74,7 +78,8 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
         mute: true, // Start muted so Android WebView never blocks autoplay
         enableJavaScript: true,
         showVideoAnnotations: false,
-        loop: widget.fitFullScreen,
+        // No native loop: the end event must fire so the feed can advance.
+        loop: false,
         playsInline: true,
         pointerEvents: isPassiveReel ? PointerEvents.none : PointerEvents.auto,
       ),
@@ -100,6 +105,16 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       // Went off-screen while loading/auto-playing -> stop.
       if (state == PlayerState.playing && !widget.isActive) {
         _controller!.pauseVideo();
+      }
+      if (state == PlayerState.ended && widget.isActive) {
+        final onEnded = widget.onEnded;
+        if (onEnded != null) {
+          onEnded();
+        } else if (widget.fitFullScreen) {
+          // Last reel in the feed: nowhere to advance, so replay it.
+          _controller!.seekTo(seconds: 0, allowSeekAhead: true);
+          _controller!.playVideo();
+        }
       }
       if (!_started &&
           (state == PlayerState.playing || state == PlayerState.buffering)) {

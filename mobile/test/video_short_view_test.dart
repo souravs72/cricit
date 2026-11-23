@@ -1,3 +1,4 @@
+import 'package:cricit/core/widgets/embedded_youtube_player.dart';
 import 'package:cricit/features/feed/domain/news_card.dart';
 import 'package:cricit/features/feed/presentation/video_short_view.dart';
 import 'package:flutter/material.dart';
@@ -169,5 +170,39 @@ void main() {
     await tester.drag(find.byType(VideoShortView), const Offset(300, 0));
     await tester.pumpAndSettle();
     expect(prevTriggered, isTrue);
+  });
+
+  testWidgets('finishing a reel advances to the next one (auto-scroll)',
+      (tester) async {
+    var nextCount = 0;
+    final card = NewsCard(
+      id: 'test-video-end',
+      kind: 'video',
+      category: 'international',
+      headline: 'Auto advance',
+      summary: '',
+      publishedAt: DateTime.now().toUtc(),
+      shareUrl: 'https://cricit.app/p/test-video-end',
+      videoId: 'xtn0lf5TY84',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 430,
+            height: 932,
+            child: VideoShortView(card: card, onSwipeNext: () => nextCount++),
+          ),
+        ),
+      ),
+    );
+
+    final player = tester.widget<EmbeddedYouTubePlayer>(
+      find.byType(EmbeddedYouTubePlayer),
+    );
+    expect(player.autoPlay, isTrue);
+    player.onEnded!();
+    expect(nextCount, 1);
   });
 }

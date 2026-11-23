@@ -16,6 +16,7 @@ class PlatformYouTubePlayer extends StatefulWidget {
     this.interactive = true,
     this.isActive = true,
     this.isPreload = false,
+    this.onEnded,
   });
 
   final String videoId;
@@ -27,6 +28,7 @@ class PlatformYouTubePlayer extends StatefulWidget {
   final bool interactive;
   final bool isActive;
   final bool isPreload;
+  final VoidCallback? onEnded;
 
   @override
   State<PlatformYouTubePlayer> createState() => _PlatformYouTubePlayerState();

@@ -75,7 +75,8 @@ class _VideoShortViewState extends State<VideoShortView> {
     HapticFeedback.mediumImpact();
     setState(() {
       _coverMode = !_coverMode;
-      _modeBadgeMessage = _coverMode ? 'Reel Fill (Full Bleed)' : 'Fit Video (Uncropped)';
+      _modeBadgeMessage =
+          _coverMode ? 'Reel Fill (Full Bleed)' : 'Fit Video (Uncropped)';
     });
     _badgeTimer?.cancel();
     _badgeTimer = Timer(const Duration(milliseconds: 1400), () {
@@ -107,7 +108,6 @@ class _VideoShortViewState extends State<VideoShortView> {
     }
     _dragDeltaX = 0;
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +147,7 @@ class _VideoShortViewState extends State<VideoShortView> {
                     interactive: false,
                     isActive: isActuallyPlaying,
                     isPreload: widget.isPreload,
+                    onEnded: widget.onSwipeNext,
                   ),
                   if (widget.isActive && _userPaused)
                     Center(
@@ -246,15 +247,19 @@ class _VideoShortViewState extends State<VideoShortView> {
             right: CricitSpace.md,
             child: Semantics(
               button: true,
-              label: _coverMode ? 'Switch to uncropped fit' : 'Switch to full bleed reel',
+              label: _coverMode
+                  ? 'Switch to uncropped fit'
+                  : 'Switch to full bleed reel',
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: _toggleCoverMode,
                   borderRadius: BorderRadius.circular(CricitRadius.full),
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    constraints:
+                        const BoxConstraints(minWidth: 44, minHeight: 44),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.65),
@@ -400,8 +405,7 @@ class _VideoShortViewState extends State<VideoShortView> {
                       ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius:
-                            BorderRadius.circular(CricitRadius.full),
+                        borderRadius: BorderRadius.circular(CricitRadius.full),
                         border: Border.all(color: Colors.white24),
                       ),
                       child: Row(
@@ -490,8 +494,7 @@ class _VideoShortViewState extends State<VideoShortView> {
                       vertical: 4,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(CricitRadius.full),
+                      borderRadius: BorderRadius.circular(CricitRadius.full),
                     ),
                   ),
                   icon: const Icon(
