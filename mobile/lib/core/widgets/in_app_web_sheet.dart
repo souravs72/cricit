@@ -81,7 +81,8 @@ class InAppWebSheet extends StatelessWidget {
 
           // Header bar
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CricitSpace.md, vertical: CricitSpace.sm),
+            padding: const EdgeInsets.symmetric(
+                horizontal: CricitSpace.md, vertical: CricitSpace.sm),
             child: Row(
               children: [
                 IconButton(
@@ -111,9 +112,11 @@ class InAppWebSheet extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
@@ -132,7 +135,8 @@ class InAppWebSheet extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -158,7 +162,9 @@ class InAppWebSheet extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(CricitSpace.md),
                     decoration: BoxDecoration(
-                      color: isDark ? CricitColors.surfaceDark : CricitColors.sightscreen,
+                      color: isDark
+                          ? CricitColors.surfaceDark
+                          : CricitColors.sightscreen,
                       borderRadius: BorderRadius.circular(CricitRadius.md),
                       border: Border.all(
                         color: theme.colorScheme.outline.withValues(alpha: 0.2),
@@ -194,7 +200,8 @@ class InAppWebSheet extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 12,
-                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        backgroundColor:
+                            theme.colorScheme.primary.withValues(alpha: 0.15),
                         child: Text(
                           sourceName.isNotEmpty ? sourceName[0] : 'C',
                           style: TextStyle(

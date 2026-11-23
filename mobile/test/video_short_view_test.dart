@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('VideoShortView renders screenwide layout with video, headline and channel',
+  testWidgets(
+      'VideoShortView renders screenwide layout with video, headline and channel',
       (tester) async {
     final card = NewsCard(
       id: 'test-video-1',
@@ -41,7 +42,8 @@ void main() {
     expect(find.text('Reel Fill'), findsOneWidget);
   });
 
-  testWidgets('tapping Reel Fill toggle switches between reel cover and fit view',
+  testWidgets(
+      'tapping Reel Fill toggle switches between reel cover and fit view',
       (tester) async {
     final card = NewsCard(
       id: 'test-video-toggle',
@@ -126,7 +128,8 @@ void main() {
     expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
   });
 
-  testWidgets('swiping left on VideoShortView triggers onSwipeNext', (tester) async {
+  testWidgets('swiping left on VideoShortView triggers onSwipeNext',
+      (tester) async {
     bool nextTriggered = false;
     bool prevTriggered = false;
 

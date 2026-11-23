@@ -35,7 +35,8 @@ class PlatformYouTubePlayer extends StatefulWidget {
 class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   Future<void> _launch() async {
     await HapticFeedback.lightImpact();
-    final uri = Uri.tryParse('https://www.youtube.com/watch?v=${widget.videoId}');
+    final uri =
+        Uri.tryParse('https://www.youtube.com/watch?v=${widget.videoId}');
     if (uri != null) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }

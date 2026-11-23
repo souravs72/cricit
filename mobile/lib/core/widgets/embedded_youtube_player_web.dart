@@ -56,13 +56,16 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   @override
   void didUpdateWidget(PlatformYouTubePlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.videoId != oldWidget.videoId || widget.isActive != oldWidget.isActive) {
+    if (widget.videoId != oldWidget.videoId ||
+        widget.isActive != oldWidget.isActive) {
       setState(() {
         _computeViewType();
         _registerView();
       });
       // Postmessage to iframe if already loaded for smooth playback toggle
-      final iframe = web.document.querySelector('iframe[src*="${widget.videoId}"]') as web.HTMLIFrameElement?;
+      final iframe =
+          web.document.querySelector('iframe[src*="${widget.videoId}"]')
+              as web.HTMLIFrameElement?;
       if (iframe != null && iframe.contentWindow != null) {
         final func = widget.isActive ? 'playVideo' : 'pauseVideo';
         final cmd = '{"event":"command","func":"$func","args":""}';
@@ -136,7 +139,8 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
                   minHeight: targetHeight,
                   maxHeight: targetHeight,
                   alignment: Alignment.center,
-                  child: HtmlElementView(key: ValueKey(_viewType), viewType: _viewType),
+                  child: HtmlElementView(
+                      key: ValueKey(_viewType), viewType: _viewType),
                 ),
               ),
             );
@@ -149,7 +153,8 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
             alignment: Alignment.center,
             child: AspectRatio(
               aspectRatio: effectiveRatio,
-              child: HtmlElementView(key: ValueKey(_viewType), viewType: _viewType),
+              child: HtmlElementView(
+                  key: ValueKey(_viewType), viewType: _viewType),
             ),
           );
         },
