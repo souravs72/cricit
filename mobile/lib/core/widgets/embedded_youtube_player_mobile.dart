@@ -2,7 +2,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+
+import 'video_frame_math.dart';
 
 /// Native mobile (Android & iOS) implementation of the embedded YouTube player.
 /// Uses `youtube_player_iframe` and `webview_flutter_android` to play videos
@@ -46,6 +49,7 @@ class PlatformYouTubePlayer extends StatefulWidget {
 class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   YoutubePlayerController? _controller;
   bool _isTestEnvironment = false;
+  bool _started = false;
 
   @override
   void initState() {
@@ -76,9 +80,30 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       ),
     );
 
+    // YoutubePlayer (the package widget) normally does this; we render the
+    // WebView ourselves, inline, so we must initialise the controller.
+    _controller!.webViewController.setBackgroundColor(Colors.black);
+    _controller!.initWithParams(params: _controller!.params);
+
     _controller!.listen((value) {
-      if (value.playerState == PlayerState.playing && widget.isActive) {
+      final state = value.playerState;
+      if (!mounted) return;
+      if (state == PlayerState.playing && widget.isActive) {
         _controller!.unMute();
+      }
+      // Player became ready after the page was already activated -> play.
+      if ((state == PlayerState.cued || state == PlayerState.unStarted) &&
+          widget.isActive &&
+          widget.autoPlay) {
+        _controller!.playVideo();
+      }
+      // Went off-screen while loading/auto-playing -> stop.
+      if (state == PlayerState.playing && !widget.isActive) {
+        _controller!.pauseVideo();
+      }
+      if (!_started &&
+          (state == PlayerState.playing || state == PlayerState.buffering)) {
+        setState(() => _started = true);
       }
     });
   }
@@ -151,57 +176,67 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
 
     final isPassiveReel = widget.fitFullScreen || !widget.interactive;
 
+    // The WebView is rendered INLINE (never in the root overlay) so it scrolls
+    // with the PageView and sits under Cricit's own UI. It never receives
+    // touches in reel mode, so every swipe reaches the PageView.
+    Widget webView() => IgnorePointer(
+          ignoring: isPassiveReel,
+          child: WebViewWidget(
+            key: ValueKey('wv-${widget.videoId}'),
+            controller: _controller!.webViewController,
+            gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+          ),
+        );
+
+    final thumbnail = Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 250),
+          opacity: _started ? 0 : 1,
+          child: ColoredBox(
+            color: Colors.black,
+            child: Image.network(
+              YoutubePlayerController.getThumbnail(
+                videoId: widget.videoId,
+                quality: ThumbnailQuality.high,
+                format: ThumbnailFormat.jpeg,
+              ),
+              fit: widget.coverMode ? BoxFit.cover : BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+
     if (widget.fitFullScreen) {
       return LayoutBuilder(
         builder: (context, constraints) {
-          final viewportW = constraints.maxWidth;
-          final viewportH = constraints.maxHeight;
-          if (viewportW <= 0 || viewportH <= 0) {
-            return const SizedBox.expand();
-          }
-
-          if (widget.coverMode) {
-            // Edge-to-edge reel cover mode:
-            // Match the container's exact aspect ratio so YoutubePlayer fills 100%
-            // of the viewport without letterboxing or black margins.
-            final screenRatio = viewportW / viewportH;
-            return SizedBox(
-              width: viewportW,
-              height: viewportH,
-              child: IgnorePointer(
-                ignoring: isPassiveReel,
-                child: YoutubePlayer(
-                  key: ValueKey('yt-${widget.videoId}-cover'),
-                  controller: _controller!,
-                  aspectRatio: screenRatio,
-                  backgroundColor: Colors.black,
-                  autoFullScreen: false,
-                  enableFullScreenOnVerticalDrag: false,
-                  gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
-                ),
-              ),
-            );
-          }
-
-          // Fit mode: standard uncropped letterboxed/contain view
-          return Container(
-            color: Colors.black,
-            width: viewportW,
-            height: viewportH,
-            alignment: Alignment.center,
-            child: AspectRatio(
-              aspectRatio: effectiveVideoRatio,
-              child: IgnorePointer(
-                ignoring: isPassiveReel,
-                child: YoutubePlayer(
-                  key: ValueKey('yt-${widget.videoId}-fit'),
-                  controller: _controller!,
-                  aspectRatio: effectiveVideoRatio,
-                  backgroundColor: Colors.black,
-                  autoFullScreen: false,
-                  enableFullScreenOnVerticalDrag: false,
-                  gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
-                ),
+          final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+          final frame = computeVideoFrame(
+            viewport,
+            effectiveVideoRatio,
+            cover: widget.coverMode,
+          );
+          if (frame.isEmpty) return const SizedBox.expand();
+          return SizedBox(
+            width: viewport.width,
+            height: viewport.height,
+            child: ClipRect(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ColoredBox(color: Colors.black),
+                  OverflowBox(
+                    alignment: Alignment.center,
+                    minWidth: frame.width,
+                    maxWidth: frame.width,
+                    minHeight: frame.height,
+                    maxHeight: frame.height,
+                    child: webView(),
+                  ),
+                  thumbnail,
+                ],
               ),
             ),
           );
@@ -214,14 +249,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       width: double.infinity,
       child: AspectRatio(
         aspectRatio: effectiveVideoRatio,
-        child: YoutubePlayer(
-          controller: _controller!,
-          aspectRatio: effectiveVideoRatio,
-          backgroundColor: Colors.black,
-          autoFullScreen: false,
-          enableFullScreenOnVerticalDrag: false,
-          gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
-        ),
+        child: webView(),
       ),
     );
   }
