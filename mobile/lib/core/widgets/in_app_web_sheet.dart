@@ -82,7 +82,9 @@ class InAppWebSheet extends StatelessWidget {
           // Header bar
           Padding(
             padding: const EdgeInsets.symmetric(
-                horizontal: CricitSpace.md, vertical: CricitSpace.sm),
+              horizontal: CricitSpace.md,
+              vertical: CricitSpace.sm,
+            ),
             child: Row(
               children: [
                 IconButton(
@@ -113,7 +115,9 @@ class InAppWebSheet extends StatelessWidget {
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1.5),
+                              horizontal: 5,
+                              vertical: 1.5,
+                            ),
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primary
                                   .withValues(alpha: 0.1),

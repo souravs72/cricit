@@ -45,8 +45,10 @@ void main() {
 
     test('degenerate viewport returns Size.zero', () {
       expect(computeVideoFrame(Size.zero, shortRatio, cover: true), Size.zero);
-      expect(computeVideoFrame(const Size(300, 0), shortRatio, cover: false),
-          Size.zero);
+      expect(
+        computeVideoFrame(const Size(300, 0), shortRatio, cover: false),
+        Size.zero,
+      );
     });
 
     test('invalid ratio falls back to 9:16', () {

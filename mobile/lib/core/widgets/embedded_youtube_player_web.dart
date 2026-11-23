@@ -140,7 +140,9 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
                   maxHeight: targetHeight,
                   alignment: Alignment.center,
                   child: HtmlElementView(
-                      key: ValueKey(_viewType), viewType: _viewType),
+                    key: ValueKey(_viewType),
+                    viewType: _viewType,
+                  ),
                 ),
               ),
             );
@@ -154,7 +156,9 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
             child: AspectRatio(
               aspectRatio: effectiveRatio,
               child: HtmlElementView(
-                  key: ValueKey(_viewType), viewType: _viewType),
+                key: ValueKey(_viewType),
+                viewType: _viewType,
+              ),
             ),
           );
         },
