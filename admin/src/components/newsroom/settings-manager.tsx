@@ -214,7 +214,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
       toast.success(
         `Ingestion run complete! ${res.created ?? 0} created, ${res.merged ?? 0} merged across ${
           res.sources_checked ?? "active"
-        } sources.`
+        } sources.`,
       );
       // Fetch status
       handleRefreshStatus();
@@ -248,8 +248,8 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Configure AI models, API keys, and autonomous newsroom ingestion on the fly without
-            restarting Docker containers or changing files.
+            Configure AI models, API keys, and autonomous newsroom ingestion on the fly without restarting
+            Docker containers or changing files.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -291,8 +291,8 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
                 {settings.llm_api_key_set
                   ? "API Key Active"
                   : provider === "local"
-                  ? "Offline Engine"
-                  : "Key Required"}
+                    ? "Offline Engine"
+                    : "Key Required"}
               </Badge>
             </div>
             <CardDescription>
@@ -450,12 +450,13 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
                     ) : (
                       <XCircle className="size-4 text-destructive" />
                     )}
-                    <span>
-                      {testResult.ok ? "Connection Successful" : "Test Failed"}
-                    </span>
+                    <span>{testResult.ok ? "Connection Successful" : "Test Failed"}</span>
                   </div>
                   {testResult.ok && (
-                    <Badge variant="outline" className="border-emerald-400 text-emerald-700 dark:text-emerald-300 font-mono text-[10px]">
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-400 text-emerald-700 dark:text-emerald-300 font-mono text-[10px]"
+                    >
                       ⚡ {testResult.latency_ms} ms
                     </Badge>
                   )}
@@ -466,10 +467,8 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
                     <p className="font-semibold text-emerald-800 dark:text-emerald-200">
                       Sample Generated Card:
                     </p>
-                    <p className="italic">"{testResult.sample_output.headline}"</p>
-                    <p className="line-clamp-2 text-muted-foreground">
-                      {testResult.sample_output.summary}
-                    </p>
+                    <p className="italic">&ldquo;{testResult.sample_output.headline}&rdquo;</p>
+                    <p className="line-clamp-2 text-muted-foreground">{testResult.sample_output.summary}</p>
                   </div>
                 )}
 
@@ -493,10 +492,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
                   <Activity className="size-5 text-blue-500" />
                   <CardTitle className="text-lg">News Ingestion Automation</CardTitle>
                 </div>
-                <Badge
-                  variant={autoIngest ? "default" : "secondary"}
-                  className="text-xs"
-                >
+                <Badge variant={autoIngest ? "default" : "secondary"} className="text-xs">
                   {autoIngest ? "Auto-Ingest Active" : "Paused"}
                 </Badge>
               </div>
@@ -576,10 +572,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
                   <Video className="size-5 text-red-500" />
                   <CardTitle className="text-lg">YouTube Data API</CardTitle>
                 </div>
-                <Badge
-                  variant={settings.youtube_api_key_set ? "default" : "secondary"}
-                  className="text-xs"
-                >
+                <Badge variant={settings.youtube_api_key_set ? "default" : "secondary"} className="text-xs">
                   {settings.youtube_api_key_set ? "Key Configured" : "Not Set"}
                 </Badge>
               </div>
@@ -606,9 +599,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
                     value={youtubeKeyInput}
                     onChange={(e) => setYoutubeKeyInput(e.target.value)}
                     placeholder={
-                      settings.youtube_api_key_set
-                        ? "Enter new YouTube API key to overwrite..."
-                        : "AIzaSy..."
+                      settings.youtube_api_key_set ? "Enter new YouTube API key to overwrite..." : "AIzaSy..."
                     }
                     className="pr-10 font-mono text-xs"
                   />
@@ -637,12 +628,7 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
               <Shield className="size-5 text-indigo-500" />
               <CardTitle className="text-base">System Audit & Status</CardTitle>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRefreshStatus}
-              className="text-xs gap-1.5"
-            >
+            <Button variant="ghost" size="sm" onClick={handleRefreshStatus} className="text-xs gap-1.5">
               <RefreshCw className="size-3.5" /> Refresh Telemetry
             </Button>
           </div>
@@ -665,7 +651,8 @@ export function SettingsManager({ initialSettings }: { initialSettings: AppSetti
             <div className="p-3 rounded-lg border bg-card">
               <span className="text-xs text-muted-foreground">Autonomous Engine</span>
               <p className="font-semibold mt-1">
-                {settings.auto_ingest_enabled ? "Enabled" : "Disabled"} (every {settings.ingest_interval_min}m)
+                {settings.auto_ingest_enabled ? "Enabled" : "Disabled"} (every {settings.ingest_interval_min}
+                m)
               </p>
             </div>
             <div className="p-3 rounded-lg border bg-card">

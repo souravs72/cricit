@@ -2,14 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle2, ShieldAlert, ShieldCheck, UserCheck } from "lucide-react";
 import { EmptyState, NewsroomShell } from "@/components/newsroom/shell";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadOrLogin } from "@/lib/api/server";
 import { formatWhen } from "@/lib/format";
 import type { AuditRow } from "@/lib/newsroom";
@@ -41,15 +34,9 @@ export default async function AuditPage() {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead className="font-semibold text-xs uppercase tracking-wider">
-                  Timestamp
-                </TableHead>
-                <TableHead className="font-semibold text-xs uppercase tracking-wider">
-                  Action Event
-                </TableHead>
-                <TableHead className="font-semibold text-xs uppercase tracking-wider">
-                  Entity
-                </TableHead>
+                <TableHead className="font-semibold text-xs uppercase tracking-wider">Timestamp</TableHead>
+                <TableHead className="font-semibold text-xs uppercase tracking-wider">Action Event</TableHead>
+                <TableHead className="font-semibold text-xs uppercase tracking-wider">Entity</TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-wider">
                   Details / Audit Note
                 </TableHead>
@@ -85,9 +72,7 @@ export default async function AuditPage() {
                       </span>
                     </TableCell>
 
-                    <TableCell className="py-3.5 text-xs font-medium text-foreground">
-                      {row.entity}
-                    </TableCell>
+                    <TableCell className="py-3.5 text-xs font-medium text-foreground">{row.entity}</TableCell>
 
                     <TableCell className="py-3.5 text-xs text-muted-foreground">
                       {row.note ?? "Standard event logged by security middleware."}

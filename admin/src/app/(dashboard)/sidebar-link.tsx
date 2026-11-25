@@ -32,15 +32,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   "/audit": ShieldCheck,
 };
 
-export function SidebarLink({
-  href,
-  label,
-  badge,
-}: {
-  href: string;
-  label: string;
-  badge?: string;
-}) {
+export function SidebarLink({ href, label, badge }: { href: string; label: string; badge?: string }) {
   const pathname = usePathname();
   const active = pathname === href || (href !== "/overview" && pathname.startsWith(href));
   const Icon = NAV_ICONS[href];

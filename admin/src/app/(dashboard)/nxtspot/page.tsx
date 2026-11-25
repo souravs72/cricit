@@ -4,14 +4,7 @@ import { ArrowUpRight, Award, MapPin, Radio, Sparkles, User } from "lucide-react
 import { EmptyState, NewsroomShell } from "@/components/newsroom/shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { loadOrLogin } from "@/lib/api/server";
 import { formatWhen } from "@/lib/format";
 import type { NxtspotRow } from "@/lib/newsroom";
@@ -55,12 +48,8 @@ export default async function NxtspotPage() {
                   <TableHead className="font-semibold text-xs uppercase tracking-wider">
                     Player / Submitter
                   </TableHead>
-                  <TableHead className="font-semibold text-xs uppercase tracking-wider">
-                    Location
-                  </TableHead>
-                  <TableHead className="font-semibold text-xs uppercase tracking-wider">
-                    Status
-                  </TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Location</TableHead>
+                  <TableHead className="font-semibold text-xs uppercase tracking-wider">Status</TableHead>
                   <TableHead className="font-semibold text-xs uppercase tracking-wider">
                     Performance Note
                   </TableHead>
@@ -78,9 +67,7 @@ export default async function NxtspotPage() {
                           <User className="h-4 w-4" />
                         </div>
                         <div>
-                          <p className="font-semibold text-foreground text-sm">
-                            {row.submitter_name}
-                          </p>
+                          <p className="font-semibold text-foreground text-sm">{row.submitter_name}</p>
                           <span className="text-[11px] text-muted-foreground font-mono">
                             ID: {row.id.slice(0, 8)}…
                           </span>
@@ -109,7 +96,8 @@ export default async function NxtspotPage() {
                     </TableCell>
 
                     <TableCell className="py-3.5 max-w-md text-xs text-muted-foreground leading-relaxed">
-                      {row.raw_text ?? "Grassroots talent match highlight and verified bowling/batting figures."}
+                      {row.raw_text ??
+                        "Grassroots talent match highlight and verified bowling/batting figures."}
                     </TableCell>
 
                     <TableCell className="py-3.5 text-right">

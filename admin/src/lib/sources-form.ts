@@ -70,11 +70,7 @@ export function sourceCreatePayload(form: SourceForm) {
   if (form.adapter === "youtube") {
     const isUrl = rawInput.startsWith("http://") || rawInput.startsWith("https://");
     if (isUrl && !url) throw new Error("YouTube URL must be a public address.");
-    const handle = rawInput.startsWith("@")
-      ? rawInput
-      : isUrl
-      ? undefined
-      : `@${rawInput}`;
+    const handle = rawInput.startsWith("@") ? rawInput : isUrl ? undefined : `@${rawInput}`;
     return {
       name: form.name.trim(),
       type: "youtube_channel" as const,

@@ -3,14 +3,7 @@ import { Bell, Flame, Info, Send, Smartphone } from "lucide-react";
 import { NewsroomShell } from "@/components/newsroom/shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const metadata: Metadata = { title: "Push Broadcasts" };
 

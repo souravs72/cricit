@@ -77,9 +77,7 @@ export default async function AnalyticsPage() {
               return (
                 <div key={cat} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="font-semibold uppercase tracking-wider text-foreground">
-                      {cat}
-                    </span>
+                    <span className="font-semibold uppercase tracking-wider text-foreground">{cat}</span>
                     <span className="font-mono text-muted-foreground">
                       {count} ({pct}%)
                     </span>
@@ -107,9 +105,7 @@ export default async function AnalyticsPage() {
               return (
                 <div key={kind} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="font-semibold text-foreground uppercase tracking-wider">
-                      {kind}
-                    </span>
+                    <span className="font-semibold text-foreground uppercase tracking-wider">{kind}</span>
                     <span className="font-mono text-muted-foreground">
                       {count} ({pct}%)
                     </span>
@@ -129,9 +125,7 @@ export default async function AnalyticsPage() {
 
       {/* Recent Indexed Stories */}
       <div className="space-y-3">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
-          Top Indexed Stories
-        </h2>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">Top Indexed Stories</h2>
         <div className="divide-y divide-border/60 rounded-2xl border border-border/70 bg-card shadow-xs">
           {rows.slice(0, 10).map((row) => (
             <div key={row.id} className="flex items-center justify-between p-4 text-xs">

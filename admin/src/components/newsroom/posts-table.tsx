@@ -29,14 +29,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatWhen } from "@/lib/format";
 import type { PostRow } from "@/lib/newsroom";
 import { cn } from "@/lib/utils";
@@ -279,7 +272,9 @@ export function PostsTable({
                 title="Table view"
                 className={cn(
                   "p-1.5 rounded-md transition-colors",
-                  viewMode === "table" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+                  viewMode === "table"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <List className="h-4 w-4" />
@@ -290,7 +285,9 @@ export function PostsTable({
                 title="Cards view"
                 className={cn(
                   "p-1.5 rounded-md transition-colors",
-                  viewMode === "cards" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+                  viewMode === "cards"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <LayoutGrid className="h-4 w-4" />
@@ -370,13 +367,15 @@ export function PostsTable({
                         row.status === "rejected" && "text-destructive",
                       )}
                     >
-                      <span className={cn(
-                        "h-1.5 w-1.5 rounded-full",
-                        row.status === "published" && "bg-emerald-500",
-                        row.status === "review" && "bg-amber-500",
-                        row.status === "draft" && "bg-muted-foreground",
-                        row.status === "rejected" && "bg-destructive",
-                      )} />
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          row.status === "published" && "bg-emerald-500",
+                          row.status === "review" && "bg-amber-500",
+                          row.status === "draft" && "bg-muted-foreground",
+                          row.status === "rejected" && "bg-destructive",
+                        )}
+                      />
                       {row.status}
                     </span>
                   </div>
@@ -393,7 +392,10 @@ export function PostsTable({
 
                   <div className="flex flex-wrap items-center gap-1 pt-1">
                     {(row.tags ?? []).slice(0, 3).map((t) => (
-                      <span key={t} className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                      <span
+                        key={t}
+                        className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground"
+                      >
                         #{t}
                       </span>
                     ))}
@@ -542,10 +544,12 @@ export function PostsTable({
                           </p>
 
                           {row.summary && (
-                            <p className={cn(
-                              "text-xs text-muted-foreground leading-relaxed",
-                              !isExpanded && "line-clamp-2"
-                            )}>
+                            <p
+                              className={cn(
+                                "text-xs text-muted-foreground leading-relaxed",
+                                !isExpanded && "line-clamp-2",
+                              )}
+                            >
                               {row.summary}
                             </p>
                           )}
@@ -591,9 +595,12 @@ export function PostsTable({
                         <span
                           className={cn(
                             "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
-                            row.category === "international" && "bg-sky-500/10 text-sky-700 dark:text-sky-300",
-                            row.category === "domestic" && "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
-                            row.category === "grassroots" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+                            row.category === "international" &&
+                              "bg-sky-500/10 text-sky-700 dark:text-sky-300",
+                            row.category === "domestic" &&
+                              "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+                            row.category === "grassroots" &&
+                              "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
                             row.category === "ipl" && "bg-amber-500/10 text-amber-700 dark:text-amber-300",
                             !["international", "domestic", "grassroots", "ipl"].includes(row.category) &&
                               "bg-muted text-muted-foreground",
@@ -608,19 +615,23 @@ export function PostsTable({
                         <span
                           className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                            row.status === "published" && "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-                            row.status === "review" && "bg-amber-500/10 text-amber-700 dark:text-amber-400 animate-pulse",
+                            row.status === "published" &&
+                              "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                            row.status === "review" &&
+                              "bg-amber-500/10 text-amber-700 dark:text-amber-400 animate-pulse",
                             row.status === "draft" && "bg-muted text-muted-foreground",
                             row.status === "rejected" && "bg-destructive/10 text-destructive",
                           )}
                         >
-                          <span className={cn(
-                            "h-1.5 w-1.5 rounded-full",
-                            row.status === "published" && "bg-emerald-500",
-                            row.status === "review" && "bg-amber-500",
-                            row.status === "draft" && "bg-muted-foreground",
-                            row.status === "rejected" && "bg-destructive",
-                          )} />
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              row.status === "published" && "bg-emerald-500",
+                              row.status === "review" && "bg-amber-500",
+                              row.status === "draft" && "bg-muted-foreground",
+                              row.status === "rejected" && "bg-destructive",
+                            )}
+                          />
                           {row.status}
                         </span>
                       </TableCell>
@@ -702,8 +713,7 @@ export function PostsTable({
             <span className="font-semibold text-foreground">
               {Math.min(currentPage * pageSize, filteredRows.length)}
             </span>{" "}
-            of{" "}
-            <span className="font-semibold text-foreground">{filteredRows.length}</span> posts
+            of <span className="font-semibold text-foreground">{filteredRows.length}</span> posts
           </span>
         </div>
 

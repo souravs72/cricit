@@ -58,12 +58,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   </p>
                   <div className="space-y-0.5">
                     {groupItems.map((item) => (
-                      <SidebarLink
-                        key={item.href}
-                        href={item.href}
-                        label={item.label}
-                        badge={item.badge}
-                      />
+                      <SidebarLink key={item.href} href={item.href} label={item.label} badge={item.badge} />
                     ))}
                   </div>
                 </div>
