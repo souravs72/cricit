@@ -55,8 +55,10 @@ def test_source_ingest_endpoint(test_app, token_for) -> None:
     headers = {"Authorization": f"Bearer {token_for('editor')}"}
     source_id = uuid4()
 
-    with patch("app.services.ingest.fetch_and_store", new_callable=AsyncMock) as mock_fetch, \
-         patch("app.repositories.audit.write", new_callable=AsyncMock) as mock_audit:
+    with (
+        patch("app.services.ingest.fetch_and_store", new_callable=AsyncMock) as mock_fetch,
+        patch("app.repositories.audit.write", new_callable=AsyncMock) as mock_audit,
+    ):
         mock_fetch.return_value = {
             "created": 5,
             "merged": 2,
@@ -76,13 +78,11 @@ def test_ingest_run_batch_endpoint(test_app, token_for) -> None:
     client = TestClient(test_app)
     headers = {"Authorization": f"Bearer {token_for('owner')}"}
 
-    with patch(
-        "app.services.continuous_ingest.engine.run_once", new_callable=AsyncMock
-    ) as mock_run, patch(
-        "app.repositories.audit.write", new_callable=AsyncMock
-    ), patch(
-        "app.core.db.get_sessionmaker"
-    ) as mock_maker:
+    with (
+        patch("app.services.continuous_ingest.engine.run_once", new_callable=AsyncMock) as mock_run,
+        patch("app.repositories.audit.write", new_callable=AsyncMock),
+        patch("app.core.db.get_sessionmaker") as mock_maker,
+    ):
         mock_session = AsyncMock()
         mock_maker.return_value.return_value.__aenter__.return_value = mock_session
 

@@ -137,7 +137,11 @@ class TwitterAdapter:
                                     url=link,
                                     title=title,
                                     published_at=datetime.now(UTC),
-                                    extra={"author": f"@{handle}", "source": "x", "summary": desc[:180]},
+                                    extra={
+                                        "author": f"@{handle}",
+                                        "source": "x",
+                                        "summary": desc[:180],
+                                    },
                                 )
                             )
                         if items:

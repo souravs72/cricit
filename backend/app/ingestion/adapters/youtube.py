@@ -53,9 +53,7 @@ class YoutubeAdapter:
         try:
             data = json.loads(match.group(1))
             tabs = (
-                data.get("contents", {})
-                .get("twoColumnBrowseResultsRenderer", {})
-                .get("tabs", [])
+                data.get("contents", {}).get("twoColumnBrowseResultsRenderer", {}).get("tabs", [])
             )
             contents: list[dict[str, Any]] = []
             for tab in tabs:
@@ -67,14 +65,20 @@ class YoutubeAdapter:
                         break
 
             for c in contents:
-                lockup = c.get("richItemRenderer", {}).get("content", {}).get("shortsLockupViewModel")
+                lockup = (
+                    c.get("richItemRenderer", {}).get("content", {}).get("shortsLockupViewModel")
+                )
                 if not lockup:
                     continue
                 entity_id = lockup.get("entityId", "")
                 vid = entity_id.replace("shorts-shelf-item-", "")
                 if not _VIDEO_ID_RE.match(vid):
                     continue
-                title = lockup.get("overlayMetadata", {}).get("primaryText", {}).get("content", "Cricket Video Short")
+                title = (
+                    lockup.get("overlayMetadata", {})
+                    .get("primaryText", {})
+                    .get("content", "Cricket Video Short")
+                )
                 thumb = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
                 items.append(
                     RawItem(
@@ -105,7 +109,11 @@ class YoutubeAdapter:
                 vid_elem = entry.find("yt:videoId", ns)
                 vid = vid_elem.text.strip() if vid_elem is not None and vid_elem.text else None
                 title_elem = entry.find("atom:title", ns)
-                title = title_elem.text.strip() if title_elem is not None and title_elem.text else "Cricket Video"
+                title = (
+                    title_elem.text.strip()
+                    if title_elem is not None and title_elem.text
+                    else "Cricket Video"
+                )
                 pub_elem = entry.find("atom:published", ns)
                 pub_dt = None
                 if pub_elem is not None and pub_elem.text:

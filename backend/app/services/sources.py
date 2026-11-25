@@ -114,10 +114,7 @@ async def test_fetch(db: AsyncSession, source_id: UUID) -> TestFetchOut:
         raise NotBuiltYet("Test fetch for this adapter is T17")
     cfg = dict(row.adapter_config or {})
     target = (
-        cfg.get("feed_url")
-        or cfg.get("listing_url")
-        or cfg.get("sitemap_url")
-        or cfg.get("url")
+        cfg.get("feed_url") or cfg.get("listing_url") or cfg.get("sitemap_url") or cfg.get("url")
     )
     if not target:
         if row.adapter == "youtube":

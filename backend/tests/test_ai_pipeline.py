@@ -37,12 +37,18 @@ def test_extract_in_memory_text():
 def test_validate_summary_numbers():
     source = "Shubman Gill scored 104 runs off 150 balls with 12 boundaries at Perth."
     ok_sum = "Shubman Gill anchored the innings with a brilliant 104 in Perth, guiding India to a commanding position."
-    bad_sum = "Shubman Gill scored 104 runs and 7 sixes to lead the team to victory."  # '7' not in source
+    bad_sum = (
+        "Shubman Gill scored 104 runs and 7 sixes to lead the team to victory."  # '7' not in source
+    )
 
-    v_ok = validate_summary(summary=ok_sum, headline="Gill hits 104", source_text=source, min_words=10)
+    v_ok = validate_summary(
+        summary=ok_sum, headline="Gill hits 104", source_text=source, min_words=10
+    )
     assert v_ok.ok is True
 
-    v_bad = validate_summary(summary=bad_sum, headline="Gill hits 104", source_text=source, min_words=10)
+    v_bad = validate_summary(
+        summary=bad_sum, headline="Gill hits 104", source_text=source, min_words=10
+    )
     assert v_bad.ok is False
     assert any("numbers not in source" in r for r in v_bad.reasons)
 

@@ -251,13 +251,15 @@ async def benchmark_concurrent_ingest_scaling() -> list[dict[str, Any]]:
         await asyncio.gather(*[_bounded_work(i) for i in range(tasks_count)])
         dur = time.perf_counter() - t0
         ops = tasks_count / dur
-        results.append({
-            "concurrency": c,
-            "tasks": tasks_count,
-            "duration_s": dur,
-            "throughput_articles_per_sec": ops,
-            "latency_per_batch_ms": (dur / tasks_count) * 1000.0,
-        })
+        results.append(
+            {
+                "concurrency": c,
+                "tasks": tasks_count,
+                "duration_s": dur,
+                "throughput_articles_per_sec": ops,
+                "latency_per_batch_ms": (dur / tasks_count) * 1000.0,
+            }
+        )
 
     return results
 
@@ -280,11 +282,15 @@ async def main() -> None:
         print(f"  • Throughput:     {b.ops_per_second:.1f} ops/sec")
         print(f"  • Avg Latency:    {b.avg_latency_ms:.2f} ms")
         print(f"  • P95 Latency:    {b.p95_latency_ms:.2f} ms")
-        print(f"  • Memory Start:   {b.memory_start_mb:.2f} MB | End: {b.memory_end_mb:.2f} MB (Delta: +{b.memory_delta_mb:.2f} MB)")
+        print(
+            f"  • Memory Start:   {b.memory_start_mb:.2f} MB | End: {b.memory_end_mb:.2f} MB (Delta: +{b.memory_delta_mb:.2f} MB)"
+        )
         print()
 
     print("▶ Concurrency Scaling Analysis (Articles Extracted, Deduplicated & Summarized)")
-    print(f"  {'Concurrency':<12} {'Batch Items':<12} {'Duration (s)':<14} {'Throughput (art/s)':<20} {'Latency/Item (ms)':<18}")
+    print(
+        f"  {'Concurrency':<12} {'Batch Items':<12} {'Duration (s)':<14} {'Throughput (art/s)':<20} {'Latency/Item (ms)':<18}"
+    )
     print("  " + "-" * 74)
     for cr in concurrent_results:
         print(

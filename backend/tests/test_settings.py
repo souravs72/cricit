@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
-from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.core.db import get_session
 from app.main import create_app
-from app.models.settings import AppSettings
 from app.schemas.settings import mask_secret
 
 
@@ -36,16 +34,21 @@ def test_get_settings_permissions(test_app, token_for):
     assert resp.status_code in (401, 403)
 
     # Viewer denied (settings:manage only for owner)
-    resp = client.get("/admin/v1/settings", headers={"Authorization": f"Bearer {token_for('viewer')}"})
+    resp = client.get(
+        "/admin/v1/settings", headers={"Authorization": f"Bearer {token_for('viewer')}"}
+    )
     assert resp.status_code == 403
 
     # Editor denied
-    resp = client.get("/admin/v1/settings", headers={"Authorization": f"Bearer {token_for('editor')}"})
+    resp = client.get(
+        "/admin/v1/settings", headers={"Authorization": f"Bearer {token_for('editor')}"}
+    )
     assert resp.status_code == 403
 
     # Owner allowed
     with patch("app.services.settings.get_owner_settings", new_callable=AsyncMock) as mock_get:
         from app.schemas.settings import AppSettingsRead
+
         mock_get.return_value = AppSettingsRead(
             llm_provider="anthropic",
             llm_api_key_set=True,
@@ -58,7 +61,9 @@ def test_get_settings_permissions(test_app, token_for):
             auto_publish_trusted=True,
             extra_config={},
         )
-        resp = client.get("/admin/v1/settings", headers={"Authorization": f"Bearer {token_for('owner')}"})
+        resp = client.get(
+            "/admin/v1/settings", headers={"Authorization": f"Bearer {token_for('owner')}"}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["llm_provider"] == "anthropic"
@@ -69,9 +74,12 @@ def test_get_settings_permissions(test_app, token_for):
 def test_patch_settings_owner(test_app, token_for):
     client = TestClient(test_app)
 
-    with patch("app.services.settings.update_owner_settings", new_callable=AsyncMock) as mock_update, \
-         patch("app.repositories.audit.write", new_callable=AsyncMock) as mock_audit:
+    with (
+        patch("app.services.settings.update_owner_settings", new_callable=AsyncMock) as mock_update,
+        patch("app.repositories.audit.write", new_callable=AsyncMock) as mock_audit,
+    ):
         from app.schemas.settings import AppSettingsRead
+
         mock_update.return_value = AppSettingsRead(
             llm_provider="openai",
             llm_api_key_set=True,
