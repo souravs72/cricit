@@ -12,6 +12,7 @@ from app.core.db import get_session
 from app.core.permissions import Permission
 from app.core.redis import get_redis
 from app.core.security import TokenClaims
+from app.repositories import audit as audit_repo
 from app.schemas.auth import AdminChallenge, AdminLoginIn, AdminTotpIn, TokenPair
 from app.schemas.newsroom import (
     AdOut,
@@ -27,7 +28,6 @@ from app.schemas.newsroom import (
 )
 from app.schemas.settings import AppSettingsRead, AppSettingsUpdate, TestLlmRequest, TestLlmResponse
 from app.schemas.sources import SourceCreate, SourcePatch, TestFetchOut
-from app.repositories import audit as audit_repo
 from app.services import admin_auth as admin_auth_service
 from app.services import newsroom as newsroom_service
 from app.services import posts as posts_service
@@ -322,9 +322,9 @@ async def update_app_settings(
     admin_id = _admin_uuid(claims.sub)
     updated = await settings_service.update_owner_settings(session, body, admin_id=admin_id)
     diff = body.model_dump(exclude_unset=True)
-    if "llm_api_key" in diff and diff["llm_api_key"]:
+    if diff.get("llm_api_key"):
         diff["llm_api_key"] = "[REDACTED]"
-    if "youtube_api_key" in diff and diff["youtube_api_key"]:
+    if diff.get("youtube_api_key"):
         diff["youtube_api_key"] = "[REDACTED]"
     await audit_repo.write(
         session,
@@ -348,4 +348,3 @@ async def test_llm_route(
 ) -> TestLlmResponse:
     del claims
     return await settings_service.test_llm_connection(session, body)
-

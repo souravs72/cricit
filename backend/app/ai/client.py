@@ -19,7 +19,7 @@ from typing import Any, ClassVar, Protocol
 import httpx
 import structlog
 
-from app.core.config import Settings, get_settings
+from app.core.config import get_settings
 
 log = structlog.get_logger()
 
@@ -305,11 +305,34 @@ class LocalDeterministicLLMClient:
         target_words = list(words[:58] if len(words) >= 58 else words)
         if len(target_words) < 50:
             # Pad with clean factual framing without numbers so short RSS snippets form full cards
-            filler = (
-                "Full match scorecard, player statistics, and verified coverage are available "
-                "from official tournament reporting. Updates, tactical analysis, and live play "
-                "continue as the competitive series develops."
-            ).split()
+            filler = [
+                "Full",
+                "match",
+                "scorecard,",
+                "player",
+                "statistics,",
+                "and",
+                "verified",
+                "coverage",
+                "are",
+                "available",
+                "from",
+                "official",
+                "tournament",
+                "reporting.",
+                "Updates,",
+                "tactical",
+                "analysis,",
+                "and",
+                "live",
+                "play",
+                "continue",
+                "as",
+                "the",
+                "competitive",
+                "series",
+                "develops.",
+            ]
             while len(target_words) < 55 and filler:
                 target_words.append(filler.pop(0))
 

@@ -114,7 +114,11 @@ FEED_CONFIG: dict[str, dict[str, str]] = {
         "listing_url": "https://www.foxsports.com.au/cricket",
         "item_selector": "a[href*='/cricket/']",
     },
-    "BCCI YouTube": {"kind": "youtube", "handle": "@BCCI", "channel_id": "UCiErvZ3iVs0LnWoJBWcuK8Q"},
+    "BCCI YouTube": {
+        "kind": "youtube",
+        "handle": "@BCCI",
+        "channel_id": "UCiErvZ3iVs0LnWoJBWcuK8Q",
+    },
     "ICC YouTube": {"kind": "youtube", "handle": "@ICC", "channel_id": "UCt2JXOLNxszYDuYHnmuLuJw"},
     "Cricbuzz Shorts": {"kind": "youtube", "handle": "@cricbuzz"},
     "Sportskeeda Shorts": {"kind": "youtube", "handle": "@sportskeeda"},

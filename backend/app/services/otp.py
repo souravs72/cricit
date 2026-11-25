@@ -81,9 +81,8 @@ async def verify_otp(
             stored_code = c
 
     # Allow 123456 bypass only in non-production environments
-    is_valid = (
-        (stored_code is not None and code == stored_code)
-        or (settings.env not in {"staging", "production"} and code == "123456")
+    is_valid = (stored_code is not None and code == stored_code) or (
+        settings.env not in {"staging", "production"} and code == "123456"
     )
 
     if not is_valid:

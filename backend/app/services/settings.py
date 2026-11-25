@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Any
 
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,7 +78,7 @@ async def update_owner_settings(
     """Update settings in database."""
     updates = data.model_dump(exclude_unset=True)
 
-    # Don't overwrite key with empty string if the client sent an empty or whitespace string without intent
+    # Don't overwrite the key with an empty or whitespace string sent without intent,
     # Unless explicitly set to empty to clear it.
     if "llm_api_key" in updates and updates["llm_api_key"] is not None:
         updates["llm_api_key"] = updates["llm_api_key"].strip()
@@ -117,8 +116,9 @@ async def test_llm_connection(
     try:
         client = build_client_for_test(provider, api_key, model)
         test_article = (
-            "Rohit Sharma notched a commanding century as India asserted dominance in the Test match. "
-            "The captain struck 14 boundaries and two sixes, reaching three figures in 157 deliveries "
+            "Rohit Sharma notched a commanding century as India asserted dominance "
+            "in the Test match. The captain struck 14 boundaries and two sixes, "
+            "reaching three figures in 157 deliveries "
             "under tough morning batting conditions against a disciplined bowling attack."
         )
         res = await client.complete_json(

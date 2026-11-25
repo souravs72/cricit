@@ -17,6 +17,9 @@ import 'video_short_view.dart';
 
 /// The one-minute read: picture header, headline hook, ~60-word summary,
 /// media-house credit and a link to the original article (brief, p.1).
+/// Tapping anywhere on the picture or the text opens the original article.
+/// Feed, Domestic and International cards carry no video; only Nxtspot,
+/// which mixes articles and videos, sets [allowVideo].
 ///
 /// Motion is driven by the swipe, never by page load: [parallax] drifts the
 /// picture against the swipe and [settle] brings the text in as the card
@@ -35,6 +38,7 @@ class NewsCardView extends StatefulWidget {
     this.showFooterAd = false,
     this.parallax = 0,
     this.settle = 1,
+    this.allowVideo = false,
   });
 
   final NewsCard card;
@@ -54,6 +58,9 @@ class NewsCardView extends StatefulWidget {
 
   /// 0..1, how settled the card is on screen.
   final double settle;
+
+  /// Whether a video card may play inline (Nxtspot only).
+  final bool allowVideo;
 
   @override
   State<NewsCardView> createState() => _NewsCardViewState();
@@ -118,6 +125,9 @@ class _NewsCardViewState extends State<NewsCardView> {
       );
     }
 
+    final playable = widget.allowVideo && card.isVideo;
+    final canOpen = widget.onOpenSource != null || card.url != null;
+    void open() => _handleOpenSource(context);
     final edge = _teamColor;
     final footerAd = card.footerAd;
 
@@ -142,7 +152,7 @@ class _NewsCardViewState extends State<NewsCardView> {
                 children: [
                   SizedBox(
                     height: height * 0.42,
-                    child: _isPlayingVideo && card.videoId != null
+                    child: playable && _isPlayingVideo
                         ? _InlinePlayer(
                             videoId: card.videoId!,
                             onClose: () =>
@@ -151,109 +161,115 @@ class _NewsCardViewState extends State<NewsCardView> {
                         : _Hero(
                             card: card,
                             parallax: parallax,
-                            onPlay: card.isVideo
+                            onPlay: playable
                                 ? () {
                                     HapticFeedback.lightImpact();
                                     setState(() => _isPlayingVideo = true);
                                   }
                                 : null,
+                            onOpen: canOpen ? open : null,
                           ),
                   ),
                   Expanded(
                     child: _Settle(
                       progress: settle,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          CricitSpace.md,
-                          CricitSpace.md,
-                          CricitSpace.md,
-                          0,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _SourceRow(
-                              card: card,
-                              hindi: hindi,
-                              onToggleLanguage: widget.onToggleLanguage,
-                            ),
-                            const SizedBox(height: CricitSpace.sm + 2),
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              child: Text(
-                                headline,
-                                key: ValueKey('h-$hindi'),
-                                style: theme.textTheme.headlineMedium?.copyWith(
-                                  fontFamily: hindi
-                                      ? CricitFonts.hindi
-                                      : CricitFonts.display,
-                                  height: hindi ? 1.35 : 1.12,
-                                ),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: playable || !canOpen ? null : open,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            CricitSpace.md,
+                            CricitSpace.md,
+                            CricitSpace.md,
+                            0,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SourceRow(
+                                card: card,
+                                hindi: hindi,
+                                onToggleLanguage: widget.onToggleLanguage,
                               ),
-                            ),
-                            const SizedBox(height: CricitSpace.sm + 2),
-                            Expanded(
-                              child: AnimatedSwitcher(
+                              const SizedBox(height: CricitSpace.sm + 2),
+                              AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 220),
-                                child: Align(
-                                  key: ValueKey('s-$hindi'),
-                                  alignment: Alignment.topLeft,
-                                  child: Text(
-                                    summary,
-                                    style: theme.textTheme.bodyLarge,
-                                    overflow: TextOverflow.fade,
+                                child: Text(
+                                  headline,
+                                  key: ValueKey('h-$hindi'),
+                                  style:
+                                      theme.textTheme.headlineMedium?.copyWith(
+                                    fontFamily: hindi
+                                        ? CricitFonts.hindi
+                                        : CricitFonts.display,
+                                    height: hindi ? 1.35 : 1.12,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(height: CricitSpace.sm + 2),
+                              Expanded(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 220),
+                                  child: Align(
+                                    key: ValueKey('s-$hindi'),
+                                    alignment: Alignment.topLeft,
+                                    child: Text(
+                                      summary,
+                                      style: theme.textTheme.bodyLarge,
+                                      overflow: TextOverflow.fade,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            Divider(height: 1, color: theme.dividerColor),
-                            SizedBox(
-                              height: CricitSpace.xxl + CricitSpace.xs,
-                              child: Row(
-                                children: [
-                                  if (card.isVideo)
-                                    Flexible(
-                                      child: _SourceLink(
-                                        label: l10n.watchOnYouTube,
-                                        icon: Icons.play_circle_outline,
-                                        onTap: _openExternalYouTube,
-                                      ),
-                                    )
-                                  else if (card.url != null)
-                                    Flexible(
-                                      child: _SourceLink(
-                                        label: l10n.readMoreAt(
-                                          card.sourceName ?? 'source',
+                              Divider(height: 1, color: theme.dividerColor),
+                              SizedBox(
+                                height: CricitSpace.xxl + CricitSpace.xs,
+                                child: Row(
+                                  children: [
+                                    if (playable)
+                                      Flexible(
+                                        child: _SourceLink(
+                                          label: l10n.watchOnYouTube,
+                                          icon: Icons.play_circle_outline,
+                                          onTap: _openExternalYouTube,
                                         ),
-                                        icon: Icons.north_east_rounded,
-                                        onTap: () => _handleOpenSource(context),
-                                      ),
-                                    )
-                                  else
-                                    const Spacer(),
-                                  const SizedBox(width: CricitSpace.xs),
-                                  IconButton(
-                                    onPressed: () async {
-                                      await HapticFeedback.lightImpact();
-                                      await Share.share(
-                                        '$headline\n\n${l10n.shareText(card.shareUrl)}',
-                                        subject: headline,
-                                      );
-                                    },
-                                    tooltip: l10n.shareCard,
-                                    color: muted,
-                                    icon: const Icon(Icons.ios_share_rounded),
-                                  ),
-                                  SaveButton(
-                                    saved: widget.saved,
-                                    onToggle: widget.onToggleSave,
-                                  ),
-                                ],
+                                      )
+                                    else if (canOpen)
+                                      Flexible(
+                                        child: _SourceLink(
+                                          label: l10n.readMoreAt(
+                                            card.sourceName ?? 'source',
+                                          ),
+                                          icon: Icons.north_east_rounded,
+                                          onTap: open,
+                                        ),
+                                      )
+                                    else
+                                      const Spacer(),
+                                    const SizedBox(width: CricitSpace.xs),
+                                    IconButton(
+                                      onPressed: () async {
+                                        await HapticFeedback.lightImpact();
+                                        await Share.share(
+                                          '$headline\n\n${l10n.shareText(card.shareUrl)}',
+                                          subject: headline,
+                                        );
+                                      },
+                                      tooltip: l10n.shareCard,
+                                      color: muted,
+                                      icon: const Icon(Icons.ios_share_rounded),
+                                    ),
+                                    SaveButton(
+                                      saved: widget.saved,
+                                      onToggle: widget.onToggleSave,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -276,11 +292,21 @@ class _NewsCardViewState extends State<NewsCardView> {
 /// section on the right; each pill carries its own background so no gradient
 /// wash is needed for legibility.
 class _Hero extends StatelessWidget {
-  const _Hero({required this.card, required this.parallax, this.onPlay});
+  const _Hero({
+    required this.card,
+    required this.parallax,
+    this.onPlay,
+    this.onOpen,
+  });
 
   final NewsCard card;
   final double parallax;
+
+  /// Set only for a playable Nxtspot video; shows the play pill.
   final VoidCallback? onPlay;
+
+  /// Opens the original article when the picture is tapped.
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +334,7 @@ class _Hero extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onPlay,
+      onTap: onPlay ?? onOpen,
       child: ClipRect(
         child: Stack(
           fit: StackFit.expand,

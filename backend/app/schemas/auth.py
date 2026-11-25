@@ -50,4 +50,3 @@ class VerifyOtpIn(BaseModel):
     phone: str = Field(pattern=r"^\d{7,15}$")
     code: str = Field(min_length=6, max_length=6)
     device_id: str | None = None
-

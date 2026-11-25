@@ -33,9 +33,9 @@ async def session():
     await engine.dispose()
 
 
-def _post(i: int, minutes: int, category: str = "international") -> Post:
+def _post(i: int, minutes: int, category: str = "international", kind: str = "read") -> Post:
     return Post(
-        kind="read",
+        kind=kind,
         status="published",
         category=category,
         headline=f"Story {i}",
@@ -68,3 +68,29 @@ async def test_tab_filters_by_category(session):
     await session.commit()
     page = await get_feed(session, Settings(), tab="domestic", lang="en", cursor=None)
     assert [c.headline for c in page.items] == ["Story 1"]  # type: ignore[union-attr]
+
+
+async def test_article_tabs_leave_out_videos_but_nxtspot_keeps_them(session):
+    session.add_all(
+        [
+            _post(1, 1, "domestic"),
+            _post(2, 2, "domestic", kind="video"),
+            _post(3, 3, "international", kind="video"),
+            _post(4, 4, "grassroots", kind="nxtspot"),
+            _post(5, 5, "grassroots", kind="video"),
+        ]
+    )
+    await session.commit()
+    settings = Settings()
+
+    def heads(page):
+        return [c.headline for c in page.items if hasattr(c, "headline")]
+
+    domestic = await get_feed(session, settings, tab="domestic", lang="en", cursor=None)
+    international = await get_feed(session, settings, tab="international", lang="en", cursor=None)
+    nxtspot = await get_feed(session, settings, tab="nxtspot", lang="en", cursor=None)
+    feed = await get_feed(session, settings, tab="feed", lang="en", cursor=None)
+    assert heads(domestic) == ["Story 1"]
+    assert heads(international) == []
+    assert heads(nxtspot) == ["Story 5", "Story 4"]
+    assert "Story 2" not in heads(feed) and "Story 5" not in heads(feed)

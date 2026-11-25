@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import contextlib
 from datetime import UTC, datetime
-from typing import Any
 from uuid import UUID
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.client import SUMMARY_SCHEMA, get_llm_client, load_prompt
+from app.ai.client import SUMMARY_SCHEMA, get_llm_client
 from app.core.errors import Conflict, NotFound
 from app.models import Post
 from app.repositories import audit as audit_repo
@@ -165,37 +164,41 @@ async def curate_story(
     db: AsyncSession,
     data: CurateIn,
 ) -> CurateOut:
-    """Takes rough notes, article URLs, or raw text and polishes it into a verified 60-word cricket card."""
+    """Polish rough notes, an article URL or raw text into a verified 60-word cricket card."""
     content_text = (data.raw_text or "").strip()
 
     # If URL is provided, attempt in-memory HTML extraction
     if data.url and not content_text:
-        try:
+        # A page we can't fetch just falls back to the editor's notes below.
+        with contextlib.suppress(httpx.HTTPError):
             async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as http_client:
-                resp = await http_client.get(data.url, headers={"User-Agent": "CRICIT-Newsroom/1.0"})
+                resp = await http_client.get(
+                    data.url, headers={"User-Agent": "CRICIT-Newsroom/1.0"}
+                )
                 if resp.is_success:
                     content_text = extract_in_memory_text(resp.text)
-        except Exception:
-            pass
 
     if not content_text:
         content_text = (data.notes or "Cricket match update").strip()
 
     app_cfg = await settings_repo.get_settings(db)
     llm = get_llm_client(app_cfg) if (app_cfg and app_cfg.llm_api_key) else get_llm_client()
-    _, template = load_prompt("summarize_v1")
 
     prompt = (
         f"You are a master cricket editor for CRICIT (a short-news mobile app like Inshorts).\n"
         f"Curate this raw cricket content into an engaging, accurate 60-word story card.\n\n"
         f"Category hint: {data.category or 'international'}\n"
-        f"Editor angle/notes: {data.notes or 'Highlight key turning point and scorecard numbers'}\n\n"
+        "Editor angle/notes: "
+        f"{data.notes or 'Highlight key turning point and scorecard numbers'}\n\n"
         f"Content:\n{content_text[:4000]}"
     )
 
     try:
         llm_res = await llm.complete_json(
-            system="You are a professional cricket journalist and news editor for CRICIT. Always return valid JSON conforming to the schema.",
+            system=(
+                "You are a professional cricket journalist and news editor for CRICIT. "
+                "Always return valid JSON conforming to the schema."
+            ),
             user=prompt,
             schema=SUMMARY_SCHEMA,
             max_tokens=600,
@@ -229,4 +232,3 @@ async def curate_story(
         image_url="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1200&q=80",
         author_credit="CRICIT Newsroom",
     )
-

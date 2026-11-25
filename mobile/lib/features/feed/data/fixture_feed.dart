@@ -455,5 +455,5 @@ FeedPage fixturePage(String tab) {
           .where((c) => c.kind == 'nxtspot' || c.category == 'grassroots')
           .toList();
   }
-  return FeedPage(cards, null);
+  return shapeForTab(tab, FeedPage(cards, null));
 }

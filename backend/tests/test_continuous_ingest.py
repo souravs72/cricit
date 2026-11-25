@@ -99,13 +99,14 @@ async def test_engine_run_once_concurrent_with_fault_isolation() -> None:
     mock_maker = MagicMock()
     mock_maker.return_value.__aenter__.return_value = mock_session
 
-    with patch(
-        "app.services.continuous_ingest.sources_repo.list_active_fetchable",
-        new_callable=AsyncMock,
-    ) as mock_list, patch(
-        "app.services.continuous_ingest.is_due", return_value=True
-    ), patch.object(eng, "ingest_source", new_callable=AsyncMock) as mock_ingest:
-
+    with (
+        patch(
+            "app.services.continuous_ingest.sources_repo.list_active_fetchable",
+            new_callable=AsyncMock,
+        ) as mock_list,
+        patch("app.services.continuous_ingest.is_due", return_value=True),
+        patch.object(eng, "ingest_source", new_callable=AsyncMock) as mock_ingest,
+    ):
         mock_list.return_value = [s1, s2, s3]
 
         async def _fake_ingest(
@@ -122,8 +123,8 @@ async def test_engine_run_once_concurrent_with_fault_isolation() -> None:
         assert res["status"] == "completed"
         assert res["due_sources_count"] == 3
         assert res["created"] == 4  # s1: 2 + s3: 2
-        assert res["merged"] == 2   # s1: 1 + s3: 1
-        assert res["failures"] == 1 # s2: 1 failure
+        assert res["merged"] == 2  # s1: 1 + s3: 1
+        assert res["failures"] == 1  # s2: 1 failure
         assert eng.total_runs == 1
 
 

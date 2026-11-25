@@ -211,3 +211,15 @@ class AdSlot {
 
   bool get isFullPage => format == 'full_page';
 }
+
+/// Feed, Domestic and International are article decks: picture, headline,
+/// summary, credit and a link to the original. Videos belong to the Videos
+/// tab, and Nxtspot carries both its articles and its videos.
+FeedPage shapeForTab(String tab, FeedPage page) {
+  final bool Function(NewsCard) keep = switch (tab) {
+    'video' => (c) => c.isVideo,
+    'nxtspot' => (c) => true,
+    _ => (c) => c.isAd || !c.isVideo,
+  };
+  return FeedPage(page.cards.where(keep).toList(), page.nextCursor);
+}
