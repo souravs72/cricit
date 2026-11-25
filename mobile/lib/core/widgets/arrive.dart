@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Short arrival motion for a screen's sections: fade plus a small lift,
 /// staggered by [index]. Runs once per mount and is skipped entirely when

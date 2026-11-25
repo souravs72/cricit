@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'embedded_youtube_player_stub.dart'
     if (dart.library.html) 'embedded_youtube_player_web.dart'
