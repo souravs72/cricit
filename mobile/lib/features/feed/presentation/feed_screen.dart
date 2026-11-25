@@ -360,6 +360,7 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                                       : null,
                                   parallax: d,
                                   settle: 1 - d.abs(),
+                                  allowVideo: widget.tab == 'nxtspot',
                                 );
                           final shadowAlpha =
                               (0.18 * (1 - d.abs())).clamp(0.0, 0.18);

@@ -41,6 +41,14 @@ _TAB: dict[Tab, tuple[str | None, str | None]] = {
     "nxtspot": ("grassroots", None),
 }
 
+# Feed, Domestic and International are article decks (picture, headline,
+# summary, credit, link). Videos live in the Videos tab, and Nxtspot carries both.
+_EXCLUDE_KINDS: dict[Tab, tuple[str, ...]] = {
+    "feed": ("nxtspot", "video"),
+    "domestic": ("video",),
+    "international": ("video",),
+}
+
 _IN_FEED_AD = frozenset({"sponsored_card", "full_page"})
 _HTTP = TypeAdapter(HttpUrl)
 
@@ -221,7 +229,7 @@ async def build_feed_page(
     after = decode_cursor(cursor) if cursor else None
     limit = settings.feed_page_size
     category, kind = _TAB[tab]
-    exclude_kinds = ("nxtspot",) if tab == "feed" else None
+    exclude_kinds = _EXCLUDE_KINDS.get(tab)
     exclude_categories = ("grassroots",) if tab == "feed" else None
     rows = await posts_repo.list_published(
         session,
@@ -245,6 +253,8 @@ async def build_feed_page(
             kind=None,
             after=None,
             limit=max(4, limit // 4),
+            # Only Nxtspot articles go between feed stories; its videos stay in its own tab.
+            exclude_kinds=("video",),
         )
         nxt = [to_card(p, lang, share_base) for p in nxt_rows]
         items = interleave(

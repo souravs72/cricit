@@ -35,8 +35,7 @@ void main() {
     expect(find.byTooltip('Share this card'), findsOneWidget);
   });
 
-  testWidgets('tapping Play in App on video card starts embedded playback',
-      (tester) async {
+  testWidgets('a Nxtspot video card plays inline when tapped', (tester) async {
     final videoCard = NewsCard(
       id: 'video-card-1',
       kind: 'video',
@@ -55,7 +54,7 @@ void main() {
         home: SizedBox(
           width: 390,
           height: 844,
-          child: NewsCardView(card: videoCard),
+          child: NewsCardView(card: videoCard, allowVideo: true),
         ),
       ),
     );
@@ -73,5 +72,44 @@ void main() {
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
     expect(find.text('Play in App'), findsOneWidget);
+  });
+
+  testWidgets(
+      'an article card has no player and opens the original from the picture '
+      'or the text', (tester) async {
+    var opened = 0;
+    final card = NewsCard(
+      id: 'read-1',
+      kind: 'video',
+      category: 'domestic',
+      headline: 'Baroda chase down 190 in the SMAT final',
+      summary: 'Krunal Pandya’s 61 off 34 balls sealed the title.',
+      publishedAt: DateTime.utc(2026, 10, 20, 11, 30),
+      shareUrl: 'https://cricit.app/p/read-1',
+      sourceName: 'Sportstar',
+      url: 'https://sportstar.example/smat-final',
+      videoId: 'xtn0lf5TY84',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightTheme,
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: NewsCardView(card: card, onOpenSource: () => opened++),
+        ),
+      ),
+    );
+
+    expect(find.text('Play in App'), findsNothing);
+    expect(find.text('Watch on YouTube ↗'), findsNothing);
+    expect(find.textContaining('Sportstar'), findsWidgets);
+
+    await tester.tap(find.text('Baroda chase down 190 in the SMAT final'));
+    await tester.tap(find.byType(NewsCardView), warnIfMissed: false);
+    await tester.tapAt(const Offset(195, 120)); // the picture header
+    await tester.pumpAndSettle();
+    expect(opened, 3);
   });
 }

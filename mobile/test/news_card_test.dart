@@ -71,4 +71,27 @@ void main() {
     expect(again.isAd, isTrue);
     expect(NewsCard.fromJson(page.cards.first.toJson()).footerAd, isNotNull);
   });
+
+  test('article tabs drop videos, Nxtspot keeps them, Videos keeps only them',
+      () {
+    NewsCard c(String id, String kind) => NewsCard(
+          id: id,
+          kind: kind,
+          category: 'grassroots',
+          headline: id,
+          summary: '',
+          publishedAt: DateTime.utc(2026, 11, 25),
+          shareUrl: 'https://cricit.app/p/$id',
+          videoId: kind == 'video' ? 'abc' : null,
+        );
+    final page =
+        FeedPage([c('a', 'read'), c('v', 'video'), c('n', 'nxtspot')], null);
+    List<String> ids(String tab) =>
+        shapeForTab(tab, page).cards.map((e) => e.id).toList();
+    expect(ids('feed'), ['a', 'n']);
+    expect(ids('domestic'), ['a', 'n']);
+    expect(ids('international'), ['a', 'n']);
+    expect(ids('nxtspot'), ['a', 'v', 'n']);
+    expect(ids('video'), ['v']);
+  });
 }

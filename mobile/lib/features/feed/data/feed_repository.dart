@@ -27,13 +27,7 @@ class FeedRepository {
           if (cursor != null) 'cursor': cursor,
         },
       );
-      var page = FeedPage.fromJson(res.data!);
-      if (tab == 'video') {
-        page = FeedPage(
-          page.cards.where((c) => c.isVideo).toList(),
-          page.nextCursor,
-        );
-      }
+      final page = shapeForTab(tab, FeedPage.fromJson(res.data!));
       if (cursor == null) {
         await _cache.write(tab, lang, page);
       }
@@ -44,7 +38,7 @@ class FeedRepository {
     } on DioException catch (e) {
       if (cursor == null) {
         final cached = await _cache.read(tab, lang);
-        if (cached != null) return cached;
+        if (cached != null) return shapeForTab(tab, cached);
         if (!Env.isProd) return fixturePage(tab);
       }
       throw toApiException(e);
