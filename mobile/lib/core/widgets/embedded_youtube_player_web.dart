@@ -41,7 +41,10 @@ class PlatformYouTubePlayer extends StatefulWidget {
 
 class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   late String _viewType;
+  web.HTMLIFrameElement? _iframe;
   static final Set<String> _registeredTypes = {};
+  static int _instances = 0;
+  final int _instanceId = _instances++;
 
   @override
   void initState() {
@@ -50,30 +53,39 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
     _registerView();
   }
 
+  // The view type deliberately does NOT include isActive: a preloaded iframe
+  // must survive activation, otherwise it is torn down and reloaded from
+  // scratch exactly when the person swipes to it.
   void _computeViewType() {
     _viewType =
-        'cricit-yt-${widget.videoId}-${widget.interactive ? "i" : "p"}-${widget.isActive ? "act" : "inact"}-${widget.showControls ? "ctrl" : "noctrl"}';
+        'cricit-yt-${widget.videoId}-${widget.interactive ? "i" : "p"}-${widget.showControls ? "ctrl" : "noctrl"}-$_instanceId';
+  }
+
+  void _command(String func) {
+    final win = _iframe?.contentWindow;
+    if (win == null) return;
+    final cmd = '{"event":"command","func":"$func","args":""}';
+    win.postMessage(cmd.toJS, '*'.toJS);
   }
 
   @override
   void didUpdateWidget(PlatformYouTubePlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.videoId != oldWidget.videoId ||
-        widget.isActive != oldWidget.isActive) {
+    if (widget.videoId != oldWidget.videoId) {
       setState(() {
+        _iframe = null;
         _computeViewType();
         _registerView();
       });
-      // Postmessage to iframe if already loaded for smooth playback toggle
-      final iframe =
-          web.document.querySelector('iframe[src*="${widget.videoId}"]')
-              as web.HTMLIFrameElement?;
-      if (iframe != null && iframe.contentWindow != null) {
-        final func = widget.isActive ? 'playVideo' : 'pauseVideo';
-        final cmd = '{"event":"command","func":"$func","args":""}';
-        iframe.contentWindow!.postMessage(cmd.toJS, '*'.toJS);
-      }
+    } else if (widget.isActive != oldWidget.isActive) {
+      _command(widget.isActive ? 'playVideo' : 'pauseVideo');
     }
+  }
+
+  @override
+  void dispose() {
+    _iframe = null;
+    super.dispose();
   }
 
   void _registerView() {
@@ -103,6 +115,12 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
         iframe.allow =
             'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
         iframe.allowFullscreen = true;
+        // If this reel was activated while its iframe was still loading,
+        // start it as soon as the player can take commands.
+        iframe.onload = ((web.Event _) {
+          if (mounted && widget.isActive) _command('playVideo');
+        }).toJS;
+        _iframe = iframe;
         return iframe;
       },
     );

@@ -10,6 +10,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/in_app_web_sheet.dart';
 import '../../../core/widgets/loading_skeleton.dart';
+import '../../../core/widgets/youtube_poster.dart';
 import '../../../l10n/l10n.dart';
 import '../domain/news_card.dart';
 import 'feed_controller.dart';
@@ -49,10 +50,14 @@ class FeedScreen extends ConsumerWidget {
                 tabAlignment: TabAlignment.start,
                 indicatorColor: CricitColors.outfield,
                 indicatorWeight: 3,
-                labelColor: isDark ? CricitColors.outfieldDark : CricitColors.outfield,
-                unselectedLabelColor: isDark ? CricitColors.inkMutedDark : CricitColors.inkMuted,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                labelColor:
+                    isDark ? CricitColors.outfieldDark : CricitColors.outfield,
+                unselectedLabelColor:
+                    isDark ? CricitColors.inkMutedDark : CricitColors.inkMuted,
+                labelStyle:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                unselectedLabelStyle:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                 tabs: [for (final l in labels) Tab(text: l)],
                 onTap: (_) => HapticFeedback.selectionClick(),
               ),
@@ -98,25 +103,40 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
 
   void _preloadUpcoming(List<NewsCard> cards, int current) {
     if (!mounted) return;
-    for (int offset = 1; offset <= 2; offset++) {
+    // Reels look 3 ahead so a fast flicker still lands on a painted poster.
+    final ahead = widget.tab == 'video' ? 3 : 2;
+    for (int offset = 1; offset <= ahead; offset++) {
       final nextIdx = current + offset;
-      if (nextIdx < cards.length) {
-        final nextCard = cards[nextIdx];
-        final videoId = nextCard.videoId ?? 'xtn0lf5TY84';
-        final thumb = nextCard.image ?? 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg';
-        try {
-          precacheImage(CachedNetworkImageProvider(thumb), context);
-        } catch (_) {}
-      }
+      if (nextIdx >= cards.length) break;
+      final next = cards[nextIdx];
+      final url = next.image ??
+          (next.videoId != null ? youTubePosterUrl(next.videoId!) : null);
+      if (url == null) continue;
+      precacheImage(CachedNetworkImageProvider(url), context)
+          .catchError((Object _) {});
     }
+  }
+
+  /// Signed distance of page [i] from the viewport, clamped to -1..1.
+  /// Positive while [i] is leaving upward (or sitting above), negative while
+  /// it is arriving from below.
+  double _pageDelta(int i) {
+    double d;
+    if (_page.hasClients && _page.position.haveDimensions) {
+      d = (_page.page ?? _page.initialPage.toDouble()) - i;
+    } else {
+      d = (_currentIndex - i).toDouble();
+    }
+    return d.clamp(-1.0, 1.0);
   }
 
   void _goToNext(int total) {
     if (_currentIndex < total - 1 && _page.hasClients) {
       HapticFeedback.lightImpact();
       _page.nextPage(
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
+        duration: Duration(milliseconds: widget.tab == 'video' ? 420 : 320),
+        curve:
+            widget.tab == 'video' ? Curves.easeInOutCubic : Curves.easeOutCubic,
       );
     }
   }
@@ -125,8 +145,9 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
     if (_currentIndex > 0 && _page.hasClients) {
       HapticFeedback.lightImpact();
       _page.previousPage(
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
+        duration: Duration(milliseconds: widget.tab == 'video' ? 420 : 320),
+        curve:
+            widget.tab == 'video' ? Curves.easeInOutCubic : Curves.easeOutCubic,
       );
     }
   }
@@ -164,6 +185,8 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
     final snap = ref.watch(feedControllerProvider(widget.tab));
     final ctrl = ref.read(feedControllerProvider(widget.tab).notifier);
     final settings = ref.watch(settingsProvider);
+    final isVideoTab = widget.tab == 'video';
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
 
     if (snap.status != FeedStatus.data) {
       _reportedInitialView = false;
@@ -198,7 +221,8 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
         body = EmptyState(title: l10n.noStories, body: l10n.noStoriesBody);
       case FeedStatus.data:
         body = Listener(
-          onPointerSignal: (event) => _handlePointerSignal(event, snap.cards.length),
+          onPointerSignal: (event) =>
+              _handlePointerSignal(event, snap.cards.length),
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onHorizontalDragEnd: (details) {
@@ -224,9 +248,15 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                   PageView.builder(
                     controller: _page,
                     scrollDirection: Axis.vertical,
-                    physics: const PageScrollPhysics(
-                      parent: ClampingScrollPhysics(),
-                    ),
+                    // Reels keep the neighbouring page built, so the next
+                    // reel's player exists (and is buffering) before the
+                    // swipe starts instead of being created mid-swipe.
+                    allowImplicitScrolling: isVideoTab,
+                    physics: isVideoTab
+                        ? const _ReelScrollPhysics()
+                        : const PageScrollPhysics(
+                            parent: ClampingScrollPhysics(),
+                          ),
                     itemCount: snap.cards.length,
                     onPageChanged: (idx) {
                       setState(() => _currentIndex = idx);
@@ -237,82 +267,92 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                     itemBuilder: (context, i) {
                       final card = snap.cards[i];
                       final hindi = _hindiOverride[card.id] ?? settings.isHindi;
-
-                      Widget cardWidget;
                       final isCurrent = i == _currentIndex;
-                      final isPreload = (i == _currentIndex + 1 || i == _currentIndex + 2);
+                      final isReel =
+                          isVideoTab || (card.isVideo && card.summary.isEmpty);
 
-                      if (widget.tab == 'video' || (card.isVideo && card.summary.isEmpty)) {
-                        cardWidget = VideoShortView(
-                          key: ValueKey('short-${card.id}-${card.videoId}'),
-                          card: card,
-                          saved: settings.bookmarks.contains(card.id),
-                          onToggleSave: () =>
-                              ref.read(settingsProvider.notifier).toggleBookmark(card.id),
-                          indexLabel: 'Video Short ${i + 1} of ${snap.cards.length}',
-                          onSwipeNext: i < snap.cards.length - 1
-                              ? () => _goToNext(snap.cards.length)
-                              : null,
-                          onSwipePrevious: i > 0 ? _goToPrevious : null,
-                          isActive: isCurrent,
-                          isPreload: isPreload,
-                        );
-                      } else {
-                        cardWidget = NewsCardView(
-                          key: ValueKey('story-${card.id}'),
-                          card: card,
-                          saved: settings.bookmarks.contains(card.id),
-                          forceHindi: hindi,
-                          indexLabel: 'Story ${i + 1} of ${snap.cards.length}',
-                          onOpenSource: card.url == null ? null : () => _open(card),
-                          onToggleSave: () =>
-                              ref.read(settingsProvider.notifier).toggleBookmark(card.id),
-                          onToggleLanguage: card.hasHindi
-                              ? () => setState(() => _hindiOverride[card.id] = !hindi)
-                              : null,
+                      if (isReel) {
+                        return AnimatedBuilder(
+                          animation: _page,
+                          builder: (context, _) {
+                            final d = _pageDelta(i);
+                            final reel = VideoShortView(
+                              key: ValueKey('short-${card.id}-${card.videoId}'),
+                              card: card,
+                              saved: settings.bookmarks.contains(card.id),
+                              onToggleSave: () => ref
+                                  .read(settingsProvider.notifier)
+                                  .toggleBookmark(card.id),
+                              indexLabel:
+                                  'Video Short ${i + 1} of ${snap.cards.length}',
+                              onSwipeNext: i < snap.cards.length - 1
+                                  ? () => _goToNext(snap.cards.length)
+                                  : null,
+                              onSwipePrevious: i > 0 ? _goToPrevious : null,
+                              isActive: isCurrent,
+                              isPreload: i == _currentIndex + 1,
+                              // At most two live players: this one and the next.
+                              keepPlayer:
+                                  i == _currentIndex || i == _currentIndex + 1,
+                              chromeVisibility:
+                                  reduceMotion ? 1 : (1 - d.abs()).clamp(0, 1),
+                            );
+                            return _ReelDepthTransition(
+                              delta: reduceMotion ? 0 : d,
+                              child: reel,
+                            );
+                          },
                         );
                       }
 
-                      // Tactile Physical Card Deck Swipe Transformation
+                      final cardWidget = NewsCardView(
+                        key: ValueKey('story-${card.id}'),
+                        card: card,
+                        saved: settings.bookmarks.contains(card.id),
+                        forceHindi: hindi,
+                        indexLabel: 'Story ${i + 1} of ${snap.cards.length}',
+                        onOpenSource:
+                            card.url == null ? null : () => _open(card),
+                        onToggleSave: () => ref
+                            .read(settingsProvider.notifier)
+                            .toggleBookmark(card.id),
+                        onToggleLanguage: card.hasHindi
+                            ? () =>
+                                setState(() => _hindiOverride[card.id] = !hindi)
+                            : null,
+                      );
+
+                      // Tactile card deck: the page being left sinks back a
+                      // little under the one arriving.
                       return AnimatedBuilder(
                         animation: _page,
                         builder: (context, child) {
-                          double pageOffset = 0.0;
-                          if (_page.hasClients && _page.position.haveDimensions) {
-                            pageOffset = (_page.page ?? _page.initialPage.toDouble()) - i;
-                          } else {
-                            pageOffset = (_currentIndex - i).toDouble();
-                          }
-
-                          final clamped = pageOffset.clamp(-1.0, 1.0);
-                          final shadowAlpha = (1.0 - clamped.abs()).clamp(0.2, 0.65);
+                          final clamped = _pageDelta(i);
+                          final shadowAlpha =
+                              (1.0 - clamped.abs()).clamp(0.2, 0.65);
                           final shadowOffsetY = clamped < 0 ? -8.0 : 8.0;
 
-                          final isVideo = widget.tab == 'video';
-
                           return Container(
-                            margin: isVideo
-                                ? EdgeInsets.zero
-                                : const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                            decoration: isVideo
-                                ? null
-                                : BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: shadowAlpha),
-                                        blurRadius: 22,
-                                        spreadRadius: 3,
-                                        offset: Offset(0, shadowOffsetY),
-                                      ),
-                                    ],
-                                  ),
-                            child: isVideo
-                                ? child
-                                : ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: child,
-                                  ),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black
+                                      .withValues(alpha: shadowAlpha),
+                                  blurRadius: 22,
+                                  spreadRadius: 3,
+                                  offset: Offset(0, shadowOffsetY),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: child,
+                            ),
                           );
                         },
                         child: cardWidget,
@@ -404,10 +444,17 @@ class _DeckTopBar extends StatelessWidget {
 
     // Max 18 segment dashes for clear readability across screen widths
     final displaySegments = total.clamp(1, 18);
-    final activeSegment = ((currentIndex / (total - 1).clamp(1, 9999)) * (displaySegments - 1)).round();
+    final activeSegment =
+        ((currentIndex / (total - 1).clamp(1, 9999)) * (displaySegments - 1))
+            .round();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(CricitSpace.md, CricitSpace.xs, CricitSpace.md, 4),
+      padding: const EdgeInsets.fromLTRB(
+        CricitSpace.md,
+        CricitSpace.xs,
+        CricitSpace.md,
+        4,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -435,7 +482,9 @@ class _DeckTopBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isCurrent
                         ? CricitColors.scoreboard
-                        : (isFilled ? Colors.white : Colors.white.withValues(alpha: 0.25)),
+                        : (isFilled
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.25)),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -452,7 +501,8 @@ class _DeckTopBar extends StatelessWidget {
                 onTap: onPrevious,
                 behavior: HitTestBehavior.opaque,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: onPrevious != null
                         ? Colors.black.withValues(alpha: 0.35)
@@ -465,7 +515,9 @@ class _DeckTopBar extends StatelessWidget {
                       Icon(
                         Icons.keyboard_arrow_up_rounded,
                         size: 16,
-                        color: onPrevious != null ? Colors.white : Colors.transparent,
+                        color: onPrevious != null
+                            ? Colors.white
+                            : Colors.transparent,
                       ),
                       if (onPrevious != null)
                         const Text(
@@ -504,7 +556,8 @@ class _DeckTopBar extends StatelessWidget {
                 onTap: onNext,
                 behavior: HitTestBehavior.opaque,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: onNext != null
                         ? Colors.black.withValues(alpha: 0.35)
@@ -526,7 +579,8 @@ class _DeckTopBar extends StatelessWidget {
                       Icon(
                         Icons.chevron_right_rounded,
                         size: 14,
-                        color: onNext != null ? Colors.white : Colors.transparent,
+                        color:
+                            onNext != null ? Colors.white : Colors.transparent,
                       ),
                     ],
                   ),
@@ -536,6 +590,75 @@ class _DeckTopBar extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Reel paging that settles quicker than the default and treats a short,
+/// deliberate flick as a page turn, like the major short-video apps.
+class _ReelScrollPhysics extends PageScrollPhysics {
+  const _ReelScrollPhysics({super.parent});
+
+  @override
+  _ReelScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      _ReelScrollPhysics(parent: buildParent(ancestor));
+
+  @override
+  ScrollPhysics? buildParent(ScrollPhysics? ancestor) =>
+      const ClampingScrollPhysics().applyTo(ancestor);
+
+  @override
+  double get minFlingVelocity => 60;
+
+  @override
+  SpringDescription get spring => SpringDescription.withDampingRatio(
+        mass: 0.4,
+        stiffness: 140,
+        ratio: 1,
+      );
+}
+
+/// Depth swipe between reels: the reel being left recedes (drifts slower
+/// than the finger, shrinks slightly, rounds its corners and dims) while the
+/// next one slides over it at full speed. Pages later in the list paint on
+/// top, so the arriving reel always covers the departing one.
+class _ReelDepthTransition extends StatelessWidget {
+  const _ReelDepthTransition({required this.delta, required this.child});
+
+  /// Page offset from `_pageDelta`: >0 while leaving upward.
+  final double delta;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    // Always the same widget structure (identity values at rest): changing
+    // the tree shape would rebuild the reel's State and its video player.
+    final t = delta.clamp(0.0, 1.0);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final h = constraints.maxHeight;
+        return Transform.translate(
+          // Undo 55% of the page's upward travel, so it lags behind.
+          offset: Offset(0, t * h * 0.55),
+          child: Transform.scale(
+            scale: 1 - 0.08 * t,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(CricitRadius.md * 2 * t),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  child,
+                  IgnorePointer(
+                    child: ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.6 * t),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

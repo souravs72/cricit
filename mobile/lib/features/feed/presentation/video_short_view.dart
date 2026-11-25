@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -7,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app/theme.dart';
 import '../../../core/time/story_time.dart';
 import '../../../core/widgets/embedded_youtube_player.dart';
+import '../../../core/widgets/youtube_poster.dart';
 import '../domain/news_card.dart';
 
 /// Full-screen height and full-screen width Cricket Video Short card.
@@ -27,6 +29,8 @@ class VideoShortView extends StatefulWidget {
     this.onSwipePrevious,
     this.isActive = true,
     this.isPreload = false,
+    this.keepPlayer = true,
+    this.chromeVisibility = 1,
   });
 
   final NewsCard card;
@@ -37,6 +41,15 @@ class VideoShortView extends StatefulWidget {
   final VoidCallback? onSwipePrevious;
   final bool isActive;
   final bool isPreload;
+
+  /// When false only the poster frame is painted and no player is created.
+  /// The feed keeps players for the current and next reel only (see
+  /// `.cursor/rules/mobile.mdc`: at most 2 video players alive).
+  final bool keepPlayer;
+
+  /// 0..1 — how far the reel's overlay (title, source, actions) has settled
+  /// in during a swipe. 1 when the reel is fully on screen.
+  final double chromeVisibility;
 
   @override
   State<VideoShortView> createState() => _VideoShortViewState();
@@ -136,19 +149,28 @@ class _VideoShortViewState extends State<VideoShortView> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  EmbeddedYouTubePlayer(
-                    key: ValueKey('yt-${card.id}-${card.videoId}'),
-                    videoId: videoId,
-                    aspectRatio: videoRatio,
-                    fitFullScreen: true,
-                    coverMode: _coverMode,
-                    autoPlay: true,
-                    showControls: false,
-                    interactive: false,
-                    isActive: isActuallyPlaying,
-                    isPreload: widget.isPreload,
-                    onEnded: widget.onSwipeNext,
-                  ),
+                  if (!widget.keepPlayer)
+                    CachedNetworkImage(
+                      imageUrl: card.image ?? youTubePosterUrl(videoId),
+                      fit: _coverMode ? BoxFit.cover : BoxFit.contain,
+                      fadeInDuration: Duration.zero,
+                      errorWidget: (_, __, ___) =>
+                          const ColoredBox(color: Colors.black),
+                    )
+                  else
+                    EmbeddedYouTubePlayer(
+                      key: ValueKey('yt-${card.id}-${card.videoId}'),
+                      videoId: videoId,
+                      aspectRatio: videoRatio,
+                      fitFullScreen: true,
+                      coverMode: _coverMode,
+                      autoPlay: true,
+                      showControls: false,
+                      interactive: false,
+                      isActive: isActuallyPlaying,
+                      isPreload: widget.isPreload,
+                      onEnded: widget.onSwipeNext,
+                    ),
                   if (widget.isActive && _userPaused)
                     Center(
                       child: Container(
@@ -347,41 +369,46 @@ class _VideoShortViewState extends State<VideoShortView> {
           Positioned(
             right: CricitSpace.md,
             bottom: 40,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Like Button
-                _FloatingActionButton(
-                  icon: _liked ? Icons.favorite : Icons.favorite_border,
-                  color: _liked ? Colors.red : Colors.white,
-                  label: _liked ? 'Liked' : 'Like',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _liked = !_liked);
-                  },
-                ),
-                const SizedBox(height: 16),
+            child: _ChromeReveal(
+              visibility: widget.chromeVisibility,
+              delay: 0.15,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Like Button
+                  _FloatingActionButton(
+                    icon: _liked ? Icons.favorite : Icons.favorite_border,
+                    color: _liked ? Colors.red : Colors.white,
+                    label: _liked ? 'Liked' : 'Like',
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _liked = !_liked);
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                // Bookmark / Save
-                _FloatingActionButton(
-                  icon: widget.saved ? Icons.bookmark : Icons.bookmark_border,
-                  color: widget.saved ? CricitColors.scoreboard : Colors.white,
-                  label: widget.saved ? 'Saved' : 'Save',
-                  onTap: widget.onToggleSave,
-                ),
-                const SizedBox(height: 16),
+                  // Bookmark / Save
+                  _FloatingActionButton(
+                    icon: widget.saved ? Icons.bookmark : Icons.bookmark_border,
+                    color:
+                        widget.saved ? CricitColors.scoreboard : Colors.white,
+                    label: widget.saved ? 'Saved' : 'Save',
+                    onTap: widget.onToggleSave,
+                  ),
+                  const SizedBox(height: 16),
 
-                // Share Button
-                _FloatingActionButton(
-                  icon: Icons.share_outlined,
-                  color: Colors.white,
-                  label: 'Share',
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Share.share(card.shareUrl, subject: card.headline);
-                  },
-                ),
-              ],
+                  // Share Button
+                  _FloatingActionButton(
+                    icon: Icons.share_outlined,
+                    color: Colors.white,
+                    label: 'Share',
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Share.share(card.shareUrl, subject: card.headline);
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -390,128 +417,132 @@ class _VideoShortViewState extends State<VideoShortView> {
             left: CricitSpace.md,
             right: 80,
             bottom: CricitSpace.lg,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Channel Pill & Relative Timestamp
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(CricitRadius.full),
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CircleAvatar(
-                            radius: 7,
-                            backgroundColor: Color(0xFFE50914),
-                            child: Icon(
-                              Icons.play_arrow,
-                              size: 9,
-                              color: Colors.white,
+            child: _ChromeReveal(
+              visibility: widget.chromeVisibility,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Channel Pill & Relative Timestamp
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius:
+                              BorderRadius.circular(CricitRadius.full),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircleAvatar(
+                              radius: 7,
+                              backgroundColor: Color(0xFFE50914),
+                              child: Icon(
+                                Icons.play_arrow,
+                                size: 9,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            card.sourceName ?? 'Cricbuzz',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                            const SizedBox(width: 5),
+                            Text(
+                              card.sourceName ?? 'Cricbuzz',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.verified,
-                            size: 11,
-                            color: Color(0xFF3B82F6),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.verified,
+                              size: 11,
+                              color: Color(0xFF3B82F6),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      storyTimeLabel(card.publishedAt),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(width: 8),
+                      Text(
+                        storyTimeLabel(card.publishedAt),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // Headline
-                Text(
-                  card.headline,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: CricitFonts.display,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 1.2,
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 8),
 
-                // Summary / Narrative Description
-                if (card.summary.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  // Headline
                   Text(
-                    card.summary,
+                    card.headline,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                      height: 1.35,
+                      fontFamily: CricitFonts.display,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.2,
+                    ),
+                  ),
+
+                  // Summary / Narrative Description
+                  if (card.summary.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      card.summary,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 10),
+
+                  // Explicit "Watch on YouTube ↗" pill button
+                  OutlinedButton.icon(
+                    onPressed: _openExternalYouTube,
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      side: const BorderSide(color: Colors.white38),
+                      backgroundColor: Colors.black.withValues(alpha: 0.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(CricitRadius.full),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.open_in_new,
+                      size: 12,
+                      color: Color(0xFFE50914),
+                    ),
+                    label: const Text(
+                      'Watch on YouTube ↗',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
-
-                const SizedBox(height: 10),
-
-                // Explicit "Watch on YouTube ↗" pill button
-                OutlinedButton.icon(
-                  onPressed: _openExternalYouTube,
-                  style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    side: const BorderSide(color: Colors.white38),
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(CricitRadius.full),
-                    ),
-                  ),
-                  icon: const Icon(
-                    Icons.open_in_new,
-                    size: 12,
-                    color: Color(0xFFE50914),
-                  ),
-                  label: const Text(
-                    'Watch on YouTube ↗',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -584,6 +615,36 @@ class _FloatingActionButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Slides and fades a reel's overlay in as the reel settles on screen, so the
+/// title and actions arrive just after the video rather than with it.
+/// [delay] (0..1) staggers one group behind another.
+class _ChromeReveal extends StatelessWidget {
+  const _ChromeReveal({
+    required this.visibility,
+    required this.child,
+    this.delay = 0,
+  });
+
+  final double visibility;
+  final double delay;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (visibility >= 1) return child;
+    final t = Curves.easeOutCubic.transform(
+      ((visibility - delay) / (1 - delay)).clamp(0.0, 1.0),
+    );
+    return Opacity(
+      opacity: t,
+      child: Transform.translate(
+        offset: Offset(0, (1 - t) * 28),
+        child: child,
       ),
     );
   }

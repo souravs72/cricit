@@ -205,4 +205,70 @@ void main() {
     player.onEnded!();
     expect(nextCount, 1);
   });
+
+  testWidgets('poster-only reel creates no video player', (tester) async {
+    final card = NewsCard(
+      id: 'test-video-poster',
+      kind: 'video',
+      category: 'international',
+      headline: 'Poster only',
+      summary: '',
+      publishedAt: DateTime.now().toUtc(),
+      shareUrl: 'https://cricit.app/p/test-video-poster',
+      videoId: 'xtn0lf5TY84',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 430,
+            height: 932,
+            child: VideoShortView(card: card, keepPlayer: false),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(EmbeddedYouTubePlayer), findsNothing);
+    expect(find.text('Poster only'), findsOneWidget);
+  });
+
+  testWidgets('overlay is hidden until the reel settles on screen',
+      (tester) async {
+    final card = NewsCard(
+      id: 'test-video-chrome',
+      kind: 'video',
+      category: 'international',
+      headline: 'Arriving reel',
+      summary: '',
+      publishedAt: DateTime.now().toUtc(),
+      shareUrl: 'https://cricit.app/p/test-video-chrome',
+      videoId: 'xtn0lf5TY84',
+    );
+
+    Future<double> headlineOpacity(double visibility) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 430,
+              height: 932,
+              child: VideoShortView(card: card, chromeVisibility: visibility),
+            ),
+          ),
+        ),
+      );
+      final opacity = tester.widgetList<Opacity>(
+        find.ancestor(
+          of: find.text('Arriving reel'),
+          matching: find.byType(Opacity),
+        ),
+      );
+      return opacity.isEmpty ? 1 : opacity.first.opacity;
+    }
+
+    expect(await headlineOpacity(0), 0);
+    expect(await headlineOpacity(1), 1);
+  });
 }
