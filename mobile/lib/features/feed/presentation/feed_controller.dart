@@ -74,7 +74,9 @@ class FeedController extends Notifier<FeedSnapshot> {
 
   void _view(int index) {
     if (index < 0 || index >= state.cards.length) return;
-    _events.enqueue(name: 'view', postId: state.cards[index].id);
+    final card = state.cards[index];
+    if (card.isAd) return; // ad impressions are counted by the ad server
+    _events.enqueue(name: 'view', postId: card.id);
   }
 
   Future<void> reload() async {

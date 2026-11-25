@@ -31,4 +31,44 @@ void main() {
     expect(page.cards.first.headlineFor(hindi: true), 'गिल की 104');
     expect(page.cards.first.toJson()['id'], page.cards.first.id);
   });
+
+  test('turns ad slots into ad pages and docks footer ads', () {
+    Map<String, dynamic> card(String id) => {
+          'id': id,
+          'kind': 'read',
+          'category': 'domestic',
+          'headline': 'h $id',
+          'summary': 's',
+          'tags': <String>[],
+          'published_at': '2026-10-20T11:30:00Z',
+          'share_url': 'https://cricit.app/p/$id',
+        };
+    final page = FeedPage.fromJson({
+      'items': [
+        card('a'),
+        {
+          'kind': 'ad',
+          'format': 'footer',
+          'title': 'Alerts',
+          'click_url': 'https://example.com/f',
+        },
+        card('b'),
+        {
+          'kind': 'ad',
+          'format': 'full_page',
+          'campaign_id': 'c1',
+          'title': 'Big',
+          'click_url': 'https://example.com/p',
+        },
+      ],
+    });
+
+    expect(page.cards.map((c) => c.isAd), [false, false, true]);
+    expect(page.cards.first.footerAd?.title, 'Alerts');
+    expect(page.cards.last.ad?.isFullPage, isTrue);
+    // Round-trips through the offline cache.
+    final again = NewsCard.fromJson(page.cards.last.toJson());
+    expect(again.isAd, isTrue);
+    expect(NewsCard.fromJson(page.cards.first.toJson()).footerAd, isNotNull);
+  });
 }

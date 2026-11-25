@@ -14,6 +14,7 @@ import '../../../core/widgets/youtube_poster.dart';
 import '../../../l10n/l10n.dart';
 import '../domain/news_card.dart';
 import 'feed_controller.dart';
+import 'ad_views.dart';
 import 'news_card_view.dart';
 import 'video_short_view.dart';
 
@@ -27,7 +28,9 @@ class FeedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = L10n.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
     final labels = [
       l10n.tabFeed,
       l10n.tabVideo,
@@ -37,29 +40,49 @@ class FeedScreen extends ConsumerWidget {
     ];
     return DefaultTabController(
       length: _tabs.length,
+      initialIndex: 0,
       child: Column(
         children: [
           Material(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            elevation: isDark ? 0 : 1,
-            shadowColor: Colors.black12,
+            color: theme.scaffoldBackgroundColor,
             child: SafeArea(
               bottom: false,
-              child: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                indicatorColor: CricitColors.outfield,
-                indicatorWeight: 3,
-                labelColor:
-                    isDark ? CricitColors.outfieldDark : CricitColors.outfield,
-                unselectedLabelColor:
-                    isDark ? CricitColors.inkMutedDark : CricitColors.inkMuted,
-                labelStyle:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                unselectedLabelStyle:
-                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                tabs: [for (final l in labels) Tab(text: l)],
-                onTap: (_) => HapticFeedback.selectionClick(),
+              child: SizedBox(
+                height: 52,
+                child: TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CricitSpace.sm,
+                  ),
+                  labelPadding: const EdgeInsets.symmetric(
+                    horizontal: CricitSpace.md - 2,
+                  ),
+                  dividerColor: Colors.transparent,
+                  splashBorderRadius:
+                      BorderRadius.circular(CricitRadius.full),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.symmetric(vertical: 9),
+                  // A pill that slides between sections as you switch.
+                  indicator: BoxDecoration(
+                    color: primary.withValues(alpha: isDark ? 0.18 : 0.10),
+                    borderRadius: BorderRadius.circular(CricitRadius.full),
+                  ),
+                  labelColor: primary,
+                  unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                  labelStyle: const TextStyle(
+                    fontFamily: CricitFonts.body,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontFamily: CricitFonts.body,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 15,
+                  ),
+                  tabs: [for (final l in labels) Tab(text: l)],
+                  onTap: (_) => HapticFeedback.selectionClick(),
+                ),
               ),
             ),
           ),
@@ -305,57 +328,80 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
                         );
                       }
 
-                      final cardWidget = NewsCardView(
-                        key: ValueKey('story-${card.id}'),
-                        card: card,
-                        saved: settings.bookmarks.contains(card.id),
-                        forceHindi: hindi,
-                        indexLabel: 'Story ${i + 1} of ${snap.cards.length}',
-                        onOpenSource:
-                            card.url == null ? null : () => _open(card),
-                        onToggleSave: () => ref
-                            .read(settingsProvider.notifier)
-                            .toggleBookmark(card.id),
-                        onToggleLanguage: card.hasHindi
-                            ? () =>
-                                setState(() => _hindiOverride[card.id] = !hindi)
-                            : null,
-                      );
-
                       // Tactile card deck: the page being left sinks back a
-                      // little under the one arriving.
+                      // little under the one arriving; the picture drifts
+                      // against the swipe and the text settles in.
                       return AnimatedBuilder(
                         animation: _page,
                         builder: (context, child) {
-                          final clamped = _pageDelta(i);
+                          final d = _pageDelta(i);
+                          final Widget page = card.isAd
+                              ? AdPageView(
+                                  key: ValueKey('ad-${card.id}'),
+                                  slot: card.ad!,
+                                )
+                              : NewsCardView(
+                                  key: ValueKey('story-${card.id}'),
+                                  card: card,
+                                  saved: settings.bookmarks.contains(card.id),
+                                  forceHindi: hindi,
+                                  indexLabel:
+                                      'Story ${i + 1} of ${snap.cards.length}',
+                                  onOpenSource: card.url == null
+                                      ? null
+                                      : () => _open(card),
+                                  onToggleSave: () => ref
+                                      .read(settingsProvider.notifier)
+                                      .toggleBookmark(card.id),
+                                  onToggleLanguage: card.hasHindi
+                                      ? () => setState(
+                                            () => _hindiOverride[card.id] =
+                                                !hindi,
+                                          )
+                                      : null,
+                                  parallax: d,
+                                  settle: 1 - d.abs(),
+                                );
                           final shadowAlpha =
-                              (1.0 - clamped.abs()).clamp(0.2, 0.65);
-                          final shadowOffsetY = clamped < 0 ? -8.0 : 8.0;
-
-                          return Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black
-                                      .withValues(alpha: shadowAlpha),
-                                  blurRadius: 22,
-                                  spreadRadius: 3,
-                                  offset: Offset(0, shadowOffsetY),
+                              (0.18 * (1 - d.abs())).clamp(0.0, 0.18);
+                          final leaving = d > 0 && !reduceMotion;
+                          return Transform.scale(
+                            scale: leaving ? 1 - 0.05 * d : 1,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black
+                                        .withValues(alpha: shadowAlpha),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    page,
+                                    IgnorePointer(
+                                      child: ColoredBox(
+                                        color: Colors.black.withValues(
+                                          alpha: leaving ? 0.35 * d : 0,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: child,
+                              ),
                             ),
                           );
                         },
-                        child: cardWidget,
                       );
                     },
                   ),
@@ -392,39 +438,73 @@ class _TabFeedState extends ConsumerState<_TabFeed> {
             right: 0,
             child: OfflineBanner(message: l10n.offlineBanner),
           ),
-        if (snap.hasNewPosts)
-          Positioned(
-            top: CricitSpace.md,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: FilledButton.tonal(
-                style: FilledButton.styleFrom(
-                  backgroundColor: CricitColors.scoreboard,
-                  foregroundColor: CricitColors.ink,
-                  elevation: 4,
-                ),
-                onPressed: () {
-                  HapticFeedback.mediumImpact();
-                  ctrl.revealNewPosts();
-                  if (_page.hasClients) _page.jumpToPage(0);
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.arrow_upward, size: 14),
-                    const SizedBox(width: 4),
-                    Text(l10n.newPosts),
-                  ],
+        // "New posts" slides down from the tab bar when fresh cards arrive.
+        Positioned(
+          top: CricitSpace.lg,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            ignoring: !snap.hasNewPosts,
+            child: AnimatedSlide(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutBack,
+              offset: snap.hasNewPosts ? Offset.zero : const Offset(0, -1.6),
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: snap.hasNewPosts ? 1 : 0,
+                child: Center(
+                  child: Material(
+                    color: CricitColors.scoreboard,
+                    elevation: 3,
+                    shadowColor: Colors.black26,
+                    shape: const StadiumBorder(),
+                    child: InkWell(
+                      customBorder: const StadiumBorder(),
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        ctrl.revealNewPosts();
+                        if (_page.hasClients) _page.jumpToPage(0);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: CricitSpace.md,
+                          vertical: CricitSpace.sm,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.arrow_upward_rounded,
+                              size: 16,
+                              color: CricitColors.ink,
+                            ),
+                            const SizedBox(width: CricitSpace.xs),
+                            Text(
+                              l10n.newPosts,
+                              style: const TextStyle(
+                                fontFamily: CricitFonts.body,
+                                fontWeight: FontWeight.w600,
+                                color: CricitColors.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
+        ),
       ],
     );
   }
 }
 
+/// Story progress across the top of the deck: one segment per story (up to
+/// 18), the current one in scoreboard amber, and a compact counter. Arrow
+/// buttons step the deck for mouse and keyboard users.
 class _DeckTopBar extends StatelessWidget {
   const _DeckTopBar({
     required this.currentIndex,
@@ -442,153 +522,121 @@ class _DeckTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (total <= 1) return const SizedBox.shrink();
 
-    // Max 18 segment dashes for clear readability across screen widths
     final displaySegments = total.clamp(1, 18);
     final activeSegment =
         ((currentIndex / (total - 1).clamp(1, 9999)) * (displaySegments - 1))
             .round();
+    const shadow = [Shadow(color: Colors.black54, blurRadius: 6)];
 
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(
         CricitSpace.md,
-        CricitSpace.xs,
+        CricitSpace.sm,
         CricitSpace.md,
-        4,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withValues(alpha: 0.65),
-            Colors.black.withValues(alpha: 0.2),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.7, 1.0],
-        ),
+        0,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Segmented Progress Bar
           Row(
             children: List.generate(displaySegments, (index) {
-              final isFilled = index <= activeSegment;
               final isCurrent = index == activeSegment;
+              final isFilled = index < activeSegment;
               return Expanded(
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
                   margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                  height: 2.5,
+                  height: isCurrent ? 3.5 : 2.5,
                   decoration: BoxDecoration(
                     color: isCurrent
                         ? CricitColors.scoreboard
-                        : (isFilled
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.25)),
-                    borderRadius: BorderRadius.circular(2),
+                        : Colors.white.withValues(alpha: isFilled ? 0.9 : 0.4),
+                    borderRadius: BorderRadius.circular(CricitRadius.full),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 3),
+                    ],
                   ),
                 ),
               );
             }),
           ),
-          const SizedBox(height: 4),
-          // Subtle Deck Info Row with Swipe Cue
+          const SizedBox(height: 2),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Previous story arrow button
-              GestureDetector(
+              _DeckArrow(
+                icon: Icons.keyboard_arrow_up_rounded,
+                label: 'Previous story',
                 onTap: onPrevious,
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: onPrevious != null
-                        ? Colors.black.withValues(alpha: 0.35)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.keyboard_arrow_up_rounded,
-                        size: 16,
-                        color: onPrevious != null
-                            ? Colors.white
-                            : Colors.transparent,
-                      ),
-                      if (onPrevious != null)
-                        const Text(
-                          ' Prev',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
               ),
-
-              // Deck Counter Pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(CricitRadius.full),
+              const Spacer(),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                transitionBuilder: (child, anim) => FadeTransition(
+                  opacity: anim,
+                  child: SlideTransition(
+                    position: Tween(
+                      begin: const Offset(0, 0.4),
+                      end: Offset.zero,
+                    ).animate(anim),
+                    child: child,
+                  ),
                 ),
                 child: Text(
                   '${currentIndex + 1} / $total',
+                  key: ValueKey(currentIndex),
                   style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: CricitFonts.display,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
-                    letterSpacing: 0.5,
+                    shadows: shadow,
                   ),
                 ),
               ),
-
-              // Next story button / swipe cue
-              GestureDetector(
+              const Spacer(),
+              _DeckArrow(
+                icon: Icons.keyboard_arrow_down_rounded,
+                label: 'Next story',
                 onTap: onNext,
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: onNext != null
-                        ? Colors.black.withValues(alpha: 0.35)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (onNext != null)
-                        Text(
-                          currentIndex == 0 ? 'Swipe left ' : 'Next ',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        size: 14,
-                        color:
-                            onNext != null ? Colors.white : Colors.transparent,
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DeckArrow extends StatelessWidget {
+  const _DeckArrow({required this.icon, required this.label, this.onTap});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 180),
+      opacity: onTap == null ? 0 : 1,
+      child: Semantics(
+        button: true,
+        label: label,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 20,
+          child: Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 20, color: Colors.white),
+          ),
+        ),
       ),
     );
   }

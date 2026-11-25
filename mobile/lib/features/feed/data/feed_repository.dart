@@ -59,11 +59,12 @@ class FeedRepository {
         '/v1/search',
         queryParameters: {'q': query, 'lang': lang},
       );
-      return FeedPage.fromJson(res.data!).cards;
+      return FeedPage.fromJson(res.data!).cards.where((c) => !c.isAd).toList();
     } on DioException {
       final cached = await _cache.read('feed', lang);
       final pool = [...?cached?.cards, ...fixtureCards()];
       return pool.where((c) {
+        if (c.isAd) return false;
         final hay =
             '${c.headline} ${c.summary} ${c.tags.join(' ')} ${c.headlineHi ?? ''}'
                 .toLowerCase();
