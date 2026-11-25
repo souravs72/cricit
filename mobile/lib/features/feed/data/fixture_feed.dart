@@ -62,7 +62,8 @@ List<NewsCard> fixtureCards() {
       id: '0192f1a0-0000-7000-8000-000000000004',
       kind: 'nxtspot',
       category: 'grassroots',
-      headline: '16-year-old spinner claims 7 wickets in Palakkad District U-19 match',
+      headline:
+          '16-year-old spinner claims 7 wickets in Palakkad District U-19 match',
       headlineHi: 'पालक्काड़ में 16 साल की खिलाड़ी ने लिए 7 विकेट',
       summary:
           'Anjali Menon, opening the bowling for Palakkad District, took 7 for 9 in an under-19 game on a damp matting wicket. A parent filmed the hat-trick ball. Nxtspot brings you grassroot talent nobody else covers.',
@@ -101,8 +102,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'विराट कोहली का कवर ड्राइव स्लो मोशन में',
       summary:
           'Head over the ball, high front elbow, zero follow-through exaggeration: perfection in high-frame-rate replay.',
-      summaryHi:
-          'परफेक्ट बैलेंस, शानदार फुटवर्क, गेंद बाउंड्री के पार।',
+      summaryHi: 'परफेक्ट बैलेंस, शानदार फुटवर्क, गेंद बाउंड्री के पार।',
       publishedAt: now.subtract(const Duration(hours: 2)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000006',
       sourceName: 'Star Sports Shorts',
@@ -133,8 +133,10 @@ List<NewsCard> fixtureCards() {
       id: '0192f1a0-0000-7000-8000-000000000008',
       kind: 'read',
       category: 'international',
-      headline: 'BCCI on X: Team India Test squad announced for Australia series',
-      headlineHi: 'बीसीसीआई एक्स अपडेट: ऑस्ट्रेलिया सीरीज के लिए भारतीय टीम घोषित',
+      headline:
+          'BCCI on X: Team India Test squad announced for Australia series',
+      headlineHi:
+          'बीसीसीआई एक्स अपडेट: ऑस्ट्रेलिया सीरीज के लिए भारतीय टीम घोषित',
       summary:
           'The Senior Men’s Selection Committee announced an 18-member squad with Jasprit Bumrah as vice-captain. Rohit Sharma will lead the team across the five-Test series.',
       summaryHi:
@@ -227,8 +229,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'मिशेल स्टार्क की 150 किमी/घंटा की स्विंग यॉर्कर',
       summary:
           'Fast, late swing in the air at 150 kph, spearing directly into the base of the off stump.',
-      summaryHi:
-          'स्टार्क की तेज गेंद जिसने स्टंप के दो टुकड़े कर दिए।',
+      summaryHi: 'स्टार्क की तेज गेंद जिसने स्टंप के दो टुकड़े कर दिए।',
       publishedAt: now.subtract(const Duration(hours: 7)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000013',
       sourceName: 'Cricket Australia Shorts',
@@ -245,8 +246,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'रिंकू सिंह के आखिरी ओवर में लगातार 5 छक्के',
       summary:
           '28 needed off 5 balls. Rinku Singh connects with five consecutive monstrous sixes to seal an impossible victory.',
-      summaryHi:
-          'क्रिकेट इतिहास का सबसे रोमांचक फिनिश: रिंकू सिंह का करिश्मा।',
+      summaryHi: 'क्रिकेट इतिहास का सबसे रोमांचक फिनिश: रिंकू सिंह का करिश्मा।',
       publishedAt: now.subtract(const Duration(hours: 8)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000014',
       sourceName: 'IPL Shorts',
@@ -263,8 +263,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'ग्लेन मैक्सवेल का स्विच-हिट छक्का',
       summary:
           'Changing grip and stance in a split second to reverse-hit a 140 kph delivery 85 metres over third man.',
-      summaryHi:
-          'मैक्सवेल का हैरान कर देने वाला स्विच हिट शॉट।',
+      summaryHi: 'मैक्सवेल का हैरान कर देने वाला स्विच हिट शॉट।',
       publishedAt: now.subtract(const Duration(hours: 9)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000015',
       sourceName: 'Cricket Australia Shorts',
@@ -281,8 +280,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'रवींद्र जडेजा का सटीक थ्रो और डायरेक्ट हिट',
       summary:
           'One stump to aim at on the turn, picking up cleanly and hitting the bullseye in one fluid motion.',
-      summaryHi:
-          'जडेजा का बिजली की तेजी से रन आउट।',
+      summaryHi: 'जडेजा का बिजली की तेजी से रन आउट।',
       publishedAt: now.subtract(const Duration(hours: 10)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000016',
       sourceName: 'BCCI YouTube',
@@ -299,8 +297,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'हार्दिक पांड्या का लॉन्ग-ऑन पर धमाकेदार फिनिश',
       summary:
           'Standing tall in the crease, high elbow, and hitting through the line with ferocious power into the second tier.',
-      summaryHi:
-          'हार्दिक पांड्या का मैच जिताऊ छक्का।',
+      summaryHi: 'हार्दिक पांड्या का मैच जिताऊ छक्का।',
       publishedAt: now.subtract(const Duration(hours: 11)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000017',
       sourceName: 'Star Sports Shorts',
@@ -317,8 +314,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'शुभमन गिल का स्टाइलिश शॉर्ट-आर्म जैब',
       summary:
           'Quick hands, pure timing, punching a back-of-a-length delivery effortlessly over deep midwicket.',
-      summaryHi:
-          'शुभमन गिल का शानदार छक्का।',
+      summaryHi: 'शुभमन गिल का शानदार छक्का।',
       publishedAt: now.subtract(const Duration(hours: 12)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000018',
       sourceName: 'BCCI YouTube',

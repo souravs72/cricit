@@ -36,9 +36,8 @@ class _SponsoredTag extends StatelessWidget {
       decoration: BoxDecoration(
         color: onDark ? Colors.black.withValues(alpha: 0.55) : null,
         border: Border.all(
-          color: onDark
-              ? Colors.white.withValues(alpha: 0.3)
-              : theme.dividerColor,
+          color:
+              onDark ? Colors.white.withValues(alpha: 0.3) : theme.dividerColor,
         ),
         borderRadius: BorderRadius.circular(CricitRadius.full),
       ),

@@ -41,14 +41,20 @@ class _CricitAppRoot extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
         scrollBehavior: const CricitScrollBehavior(),
-        routes: {'/': (_) => const SplashScreen(), '/home': (_) => const SplashScreen()},
+        routes: {
+          '/': (_) => const SplashScreen(),
+          '/home': (_) => const SplashScreen(),
+        },
       ),
       error: (e, _) => MaterialApp(
         title: 'CRICIT',
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
         scrollBehavior: const CricitScrollBehavior(),
-        routes: {'/': (_) => const SplashScreen(), '/home': (_) => const SplashScreen()},
+        routes: {
+          '/': (_) => const SplashScreen(),
+          '/home': (_) => const SplashScreen(),
+        },
       ),
       data: (_) {
         final settings = ref.watch(settingsProvider);

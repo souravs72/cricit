@@ -59,8 +59,7 @@ class FeedScreen extends ConsumerWidget {
                     horizontal: CricitSpace.md - 2,
                   ),
                   dividerColor: Colors.transparent,
-                  splashBorderRadius:
-                      BorderRadius.circular(CricitRadius.full),
+                  splashBorderRadius: BorderRadius.circular(CricitRadius.full),
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: const EdgeInsets.symmetric(vertical: 9),
                   // A pill that slides between sections as you switch.

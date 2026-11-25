@@ -69,9 +69,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Future<void> _remember(String q) async {
     if (q.length < 2) return;
-    final next = [q, ..._recent.where((r) => r.toLowerCase() != q.toLowerCase())]
-        .take(8)
-        .toList();
+    final next = [
+      q,
+      ..._recent.where((r) => r.toLowerCase() != q.toLowerCase()),
+    ].take(8).toList();
     setState(() => _recent = next);
     final p = await SharedPreferences.getInstance();
     await p.setStringList(_recentKey, next);
@@ -300,7 +301,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: CricitSpace.md),
               itemCount: _chips.length,
-              separatorBuilder: (_, __) => const SizedBox(width: CricitSpace.sm),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: CricitSpace.sm),
               itemBuilder: (context, n) => ActionChip(
                 label: Text(_chips[n]),
                 onPressed: () => _runChip(_chips[n]),
@@ -453,7 +455,8 @@ String _sectionLabel(BuildContext context, NewsCard card) {
 }
 
 String? _thumbOf(NewsCard card) =>
-    card.image ?? (card.videoId == null ? null : youTubePosterUrl(card.videoId!));
+    card.image ??
+    (card.videoId == null ? null : youTubePosterUrl(card.videoId!));
 
 /// Notification-style row: headline and credit on the left, thumbnail right.
 class _StoryTile extends StatelessWidget {
@@ -801,7 +804,9 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1B2E24) : const Color(0xFFF0FDF4),
               borderRadius: BorderRadius.circular(CricitRadius.md),
-              border: Border.all(color: CricitColors.outfield.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: CricitColors.outfield.withValues(alpha: 0.2),
+              ),
             ),
             child: const Text(
               'Who holds the official record for the fastest fifty in Men’s T20 International cricket history?',
@@ -821,7 +826,8 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
               borderRadius: BorderRadius.circular(CricitRadius.md),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: _revealed
                       ? (i == _correctIndex
@@ -837,9 +843,13 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
                     color: _revealed
                         ? (i == _correctIndex
                             ? Colors.green
-                            : (_selected == i ? Colors.red : Colors.grey.withValues(alpha: 0.3)))
+                            : (_selected == i
+                                ? Colors.red
+                                : Colors.grey.withValues(alpha: 0.3)))
                         : Colors.grey.withValues(alpha: 0.3),
-                    width: _revealed && (i == _correctIndex || _selected == i) ? 1.5 : 1,
+                    width: _revealed && (i == _correctIndex || _selected == i)
+                        ? 1.5
+                        : 1,
                   ),
                 ),
                 child: Row(
@@ -866,7 +876,11 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
                       ),
                     ),
                     if (_revealed && i == _correctIndex)
-                      const Icon(Icons.check_circle, color: Colors.green, size: 18)
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 18,
+                      )
                     else if (_revealed && _selected == i && i != _correctIndex)
                       const Icon(Icons.cancel, color: Colors.red, size: 18),
                   ],
@@ -882,7 +896,9 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
             Container(
               padding: const EdgeInsets.all(CricitSpace.sm),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+                color: isDark
+                    ? Colors.white10
+                    : Colors.black.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(CricitRadius.sm),
               ),
               child: Text(

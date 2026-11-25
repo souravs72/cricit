@@ -325,8 +325,8 @@ class _Hero extends StatelessWidget {
                         fit: BoxFit.cover,
                         fadeInDuration: const Duration(milliseconds: 180),
                         placeholder: (_, __) => ColoredBox(
-                          color: theme.colorScheme.outline
-                              .withValues(alpha: 0.25),
+                          color:
+                              theme.colorScheme.outline.withValues(alpha: 0.25),
                         ),
                         errorWidget: (_, __, ___) => placeholder,
                       ),
@@ -557,8 +557,9 @@ class _LanguageToggle extends StatelessWidget {
                       child: AnimatedDefaultTextStyle(
                         duration: const Duration(milliseconds: 220),
                         style: TextStyle(
-                          fontFamily:
-                              label == 'EN' ? CricitFonts.body : CricitFonts.hindi,
+                          fontFamily: label == 'EN'
+                              ? CricitFonts.body
+                              : CricitFonts.hindi,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: on
