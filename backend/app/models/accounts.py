@@ -21,6 +21,7 @@ class User(IdMixin, TimestampMixin, Base):
     avatar_url: Mapped[str | None] = mapped_column(String(500))
     language: Mapped[str] = mapped_column(String(2), default="en")
     prefs: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    trivia_points: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

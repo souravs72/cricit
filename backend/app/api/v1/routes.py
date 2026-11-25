@@ -1,5 +1,6 @@
 """Mobile API (/v1). Public feed endpoints are CDN-cacheable; everything else needs a user."""
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -8,9 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import UserClaims, public
 from app.core.config import Settings, get_settings
 from app.core.db import get_session
-from app.core.errors import NotBuiltYet
+from app.core.errors import NotBuiltYet, Unauthorized
 from app.core.ratelimit import RateLimiter
 from app.core.redis import get_redis
+from app.models.accounts import User
 from app.schemas.auth import (
     FirebaseExchangeIn,
     RefreshIn,
@@ -22,11 +24,19 @@ from app.schemas.auth import (
 from app.schemas.events import EventsIn
 from app.schemas.feed import FeedPage, Lang, Tab
 from app.schemas.newsroom import DiscoverOut
+from app.schemas.trivia import (
+    BallVerifyIn,
+    BallVerifyOut,
+    DailyTriviaOverOut,
+    TriviaSubmitIn,
+    TriviaSubmitOut,
+)
 from app.services import events as events_service
 from app.services import feed as feed_service
 from app.services import newsroom as newsroom_service
 from app.services import otp as otp_service
 from app.services import tokens as token_service
+from app.services import trivia as trivia_service
 from app.services import user_auth as user_auth_service
 from app.services.feed import FEED_CACHE_CONTROL
 
@@ -183,3 +193,59 @@ async def get_me(claims: UserClaims) -> dict[str, str]:
 @router.delete("/me", status_code=204)
 async def delete_me(claims: UserClaims) -> None:
     raise NotBuiltYet("T31: soft-delete user, revoke all sessions, purge after 30 days")
+
+
+@router.get("/trivia/daily", response_model=DailyTriviaOverOut, dependencies=[Depends(public)])
+async def get_daily_trivia(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> DailyTriviaOverOut:
+    """Returns today's 6-ball trivia over. Publicly accessible and CDN-cacheable.
+
+    Correct answers and explanations are omitted to prevent client-side answer sniffing.
+    """
+    return await trivia_service.get_daily_over(session)
+
+
+@router.post("/trivia/verify", response_model=BallVerifyOut)
+async def verify_ball_endpoint(
+    claims: UserClaims,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    body: BallVerifyIn,
+) -> BallVerifyOut:
+    """Verifies a single ball tap and returns the answer with explanation. Requires auth."""
+    try:
+        user_id = uuid.UUID(claims.sub)
+    except ValueError:
+        raise Unauthorized("Invalid user token") from None
+    return await trivia_service.verify_ball(session, user_id=user_id, payload=body)
+
+
+@router.get("/trivia/stats")
+async def get_trivia_stats(
+    claims: UserClaims,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict[str, int]:
+    """Returns user's total trivia points and streak. Requires auth."""
+    try:
+        user_id = uuid.UUID(claims.sub)
+    except ValueError:
+        raise Unauthorized("Invalid user token") from None
+    user = await session.get(User, user_id)
+    points = user.trivia_points if user else 0
+    today = trivia_service.get_ist_today()
+    streak = await trivia_service._calculate_streak(session, user_id, today)
+    return {"trivia_points": points, "trivia_streak": streak}
+
+
+@router.post("/trivia/submit", response_model=TriviaSubmitOut)
+async def submit_trivia(
+    claims: UserClaims,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    body: TriviaSubmitIn,
+) -> TriviaSubmitOut:
+    """Submits 6 answers for daily trivia, awards points, and records streak. Requires auth."""
+    try:
+        user_id = uuid.UUID(claims.sub)
+    except ValueError:
+        raise Unauthorized("Invalid user token") from None
+    return await trivia_service.submit_trivia(session, user_id=user_id, payload=body)

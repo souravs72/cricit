@@ -5,6 +5,7 @@ from app.models.ads import AdCampaign, AdStatsDaily, AiJob
 from app.models.base import Base
 from app.models.content import NxtspotSubmission, Post, PostSource, PostStatsDaily, Source
 from app.models.settings import AppSettings
+from app.models.trivia import DailyTriviaQuestion, UserTriviaHistory
 
 __all__ = [
     "AdCampaign",
@@ -16,6 +17,7 @@ __all__ = [
     "AuditLog",
     "Base",
     "Bookmark",
+    "DailyTriviaQuestion",
     "Device",
     "NxtspotSubmission",
     "Post",
@@ -24,4 +26,5 @@ __all__ = [
     "Session",
     "Source",
     "User",
+    "UserTriviaHistory",
 ]

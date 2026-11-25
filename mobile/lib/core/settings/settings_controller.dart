@@ -13,6 +13,9 @@ class AppSettings {
     this.signedIn = false,
     this.displayName = '',
     this.bookmarks = const {},
+    this.triviaPoints = 0,
+    this.triviaStreak = 0,
+    this.lastTriviaDate = '',
   });
 
   final String language;
@@ -24,6 +27,9 @@ class AppSettings {
   final bool signedIn;
   final String displayName;
   final Set<String> bookmarks;
+  final int triviaPoints;
+  final int triviaStreak;
+  final String lastTriviaDate;
 
   bool get isHindi => language == 'hi';
 
@@ -37,6 +43,9 @@ class AppSettings {
     bool? signedIn,
     String? displayName,
     Set<String>? bookmarks,
+    int? triviaPoints,
+    int? triviaStreak,
+    String? lastTriviaDate,
   }) {
     return AppSettings(
       language: language ?? this.language,
@@ -48,6 +57,9 @@ class AppSettings {
       signedIn: signedIn ?? this.signedIn,
       displayName: displayName ?? this.displayName,
       bookmarks: bookmarks ?? this.bookmarks,
+      triviaPoints: triviaPoints ?? this.triviaPoints,
+      triviaStreak: triviaStreak ?? this.triviaStreak,
+      lastTriviaDate: lastTriviaDate ?? this.lastTriviaDate,
     );
   }
 
@@ -74,6 +86,9 @@ class AppSettings {
               '0192f1a0-0000-7000-8000-000000000011',
             ]),
       },
+      triviaPoints: prefs.getInt(_triviaPoints) ?? 0,
+      triviaStreak: prefs.getInt(_triviaStreak) ?? 0,
+      lastTriviaDate: prefs.getString(_lastTriviaDate) ?? '',
     );
   }
 }
@@ -87,6 +102,9 @@ const _onboarded = 'onboarded';
 const _signedIn = 'signed_in';
 const _name = 'display_name';
 const _bookmarks = 'bookmarks';
+const _triviaPoints = 'trivia_points';
+const _triviaStreak = 'trivia_streak';
+const _lastTriviaDate = 'last_trivia_date';
 
 class SettingsNotifier extends Notifier<AppSettings> {
   SharedPreferences? _prefs;
@@ -165,6 +183,24 @@ class SettingsNotifier extends Notifier<AppSettings> {
     state = state.copyWith(signedIn: false, displayName: '');
     await _prefs?.setBool(_signedIn, false);
     await _prefs?.setString(_name, '');
+  }
+
+  /// Trivia points and streak always come from the server; this caches them for display.
+  Future<void> syncTriviaStats({
+    required int points,
+    required int streak,
+    String? date,
+  }) async {
+    state = state.copyWith(
+      triviaPoints: points,
+      triviaStreak: streak,
+      lastTriviaDate: date ?? state.lastTriviaDate,
+    );
+    await _prefs?.setInt(_triviaPoints, points);
+    await _prefs?.setInt(_triviaStreak, streak);
+    if (date != null) {
+      await _prefs?.setString(_lastTriviaDate, date);
+    }
   }
 
   Future<void> deleteAccount() async {

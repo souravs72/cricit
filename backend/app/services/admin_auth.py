@@ -135,12 +135,10 @@ async def verify_second_factor(
 ) -> TokenPair:
     clean_code = code.strip().replace(" ", "")
     payload = await _pop_challenge(redis, challenge_id)
-    admin = None
-    if payload is not None:
-        admin = await admins_repo.get_by_id(db, UUID(payload["admin_id"]))
-    elif clean_code.replace("-", "").lower() in {"a1b2c3d4e5f6", "9876543210ab", "cricituat2026"}:
-        admin = await admins_repo.get_by_email(db, "owner@cricit.app")
+    if payload is None:
+        raise Unauthorized("That code expired. Sign in again.")
 
+    admin = await admins_repo.get_by_id(db, UUID(payload["admin_id"]))
     if admin is None or not admin.is_active:
         raise Unauthorized("That code expired. Sign in again.")
     now = datetime.now(UTC)
@@ -158,12 +156,6 @@ async def verify_second_factor(
                 rec.used_at = now
                 ok = True
                 break
-        if not ok and clean_code.replace("-", "").lower() in {
-            "a1b2c3d4e5f6",
-            "9876543210ab",
-            "cricituat2026",
-        }:
-            ok = True
     if not ok:
         register_failure(admin, now)
         await audit_repo.write(

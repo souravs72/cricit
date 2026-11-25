@@ -19,6 +19,7 @@ import '../../feed/data/fixture_feed.dart';
 import '../../feed/domain/news_card.dart';
 import '../../feed/presentation/feed_controller.dart';
 import '../../feed/presentation/news_card_view.dart';
+import '../../trivia/data/trivia_repository.dart';
 
 const _bioKey = 'profile_bio';
 const _teamKey = 'favorite_team';
@@ -43,6 +44,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Points shown on the profile are the server's totals, refreshed on every visit.
+    unawaited(ref.read(triviaRepositoryProvider).syncProfileStats());
     SharedPreferences.getInstance().then((p) {
       if (!mounted) return;
       setState(() {
@@ -188,6 +191,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
           ),
+          if (settings.signedIn)
+            SliverToBoxAdapter(
+              child: Arrive(
+                index: 1,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    CricitSpace.md,
+                    CricitSpace.md,
+                    CricitSpace.md,
+                    0,
+                  ),
+                  child: _TriviaStatsCard(settings: settings),
+                ),
+              ),
+            ),
           SliverToBoxAdapter(
             child: Arrive(
               index: 2,
@@ -878,6 +896,226 @@ class _OptionRow extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(left: 40),
               child: SizedBox(width: double.infinity, child: below),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TriviaStatsCard extends StatelessWidget {
+  const _TriviaStatsCard({required this.settings});
+
+  final AppSettings settings;
+
+  (String, String, double) _tierInfo(int points) {
+    if (points >= 300) {
+      return ('Test Legend', '🥇', 1.0);
+    } else if (points >= 100) {
+      final progress = (points - 100) / 200.0;
+      return ('State Player', '🥈', progress.clamp(0.0, 1.0));
+    } else if (points >= 30) {
+      final progress = (points - 30) / 70.0;
+      return ('Club Cricketer', '🥉', progress.clamp(0.0, 1.0));
+    } else {
+      final progress = points / 30.0;
+      return ('Debutant', '🏏', progress.clamp(0.0, 1.0));
+    }
+  }
+
+  String _nextTierText(int points) {
+    if (points >= 300) return 'Top rank achieved!';
+    if (points >= 100) return '${300 - points} pts to Test Legend';
+    if (points >= 30) return '${100 - points} pts to State Player';
+    return '${30 - points} pts to Club Cricketer';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final points = settings.triviaPoints;
+    final streak = settings.triviaStreak;
+    final (tierName, tierIcon, progress) = _tierInfo(points);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF141F18) : const Color(0xFFF6FAF7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: CricitColors.outfield.withValues(alpha: 0.25),
+        ),
+      ),
+      padding: const EdgeInsets.all(CricitSpace.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: CricitColors.scoreboard.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(CricitRadius.md),
+                ),
+                child: const Text('🏆', style: TextStyle(fontSize: 20)),
+              ),
+              const SizedBox(width: CricitSpace.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Cricket IQ & The Daily Over',
+                      style: TextStyle(
+                        fontFamily: CricitFonts.display,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      settings.signedIn
+                          ? '$tierIcon $tierName'
+                          : 'Daily 6-Ball Cricket Trivia',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: CricitColors.outfield,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (settings.signedIn)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: CricitColors.outfield.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(CricitRadius.full),
+                  ),
+                  child: Text(
+                    '$points Pts',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: CricitColors.outfield,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: CricitSpace.md),
+          if (settings.signedIn) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(CricitSpace.sm),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : Colors.white,
+                      borderRadius: BorderRadius.circular(CricitRadius.sm),
+                      border: Border.all(
+                        color: theme.dividerColor.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$points',
+                          style: const TextStyle(
+                            fontFamily: CricitFonts.display,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: CricitColors.outfield,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Total Points',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: CricitSpace.sm),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(CricitSpace.sm),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : Colors.white,
+                      borderRadius: BorderRadius.circular(CricitRadius.sm),
+                      border: Border.all(
+                        color: theme.dividerColor.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$streak ${streak > 0 ? "🔥" : ""}',
+                          style: const TextStyle(
+                            fontFamily: CricitFonts.display,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrange,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Daily Streak (Days)',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: CricitSpace.sm),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(CricitRadius.full),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: theme.dividerColor.withValues(alpha: 0.3),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(CricitColors.outfield),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _nextTierText(points),
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(CricitSpace.sm),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white10 : Colors.white,
+                borderRadius: BorderRadius.circular(CricitRadius.sm),
+              ),
+              child: const Text(
+                'Play 6 questions every day in the Search tab to test your cricket acumen and unlock rank badges on your profile.',
+                style: TextStyle(fontSize: 12, height: 1.35),
+              ),
+            ),
+            const SizedBox(height: CricitSpace.sm),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/signin'),
+                icon: const Icon(Icons.phone_android_rounded, size: 16),
+                label: const Text(
+                  'Sign In to Bank Trivia Points',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
             ),
           ],
         ],

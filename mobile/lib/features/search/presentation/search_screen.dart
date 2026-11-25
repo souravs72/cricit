@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme.dart';
@@ -18,6 +19,8 @@ import '../../feed/data/feed_repository.dart';
 import '../../feed/domain/news_card.dart';
 import '../../feed/presentation/feed_controller.dart';
 import '../../feed/presentation/news_card_view.dart';
+import '../../trivia/data/trivia_repository.dart';
+import '../../trivia/domain/trivia.dart';
 
 /// Search page (brief p.7): search bar, section shortcuts, top stories as a
 /// notification-style list, and the Nxtspot grassroots spotlight.
@@ -625,7 +628,7 @@ class _SpotlightCardState extends State<_SpotlightCard> {
   }
 }
 
-/// Entry to the daily one-question quiz.
+/// Entry to the daily 6-ball over trivia.
 class _QuizBanner extends StatelessWidget {
   const _QuizBanner({required this.onTap});
 
@@ -634,8 +637,9 @@ class _QuizBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Material(
-      color: CricitColors.outfield,
+      color: isDark ? const Color(0xFF0D2318) : CricitColors.outfield,
       borderRadius: BorderRadius.circular(CricitRadius.md),
       child: InkWell(
         onTap: onTap,
@@ -645,45 +649,85 @@ class _QuizBanner extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: CricitColors.scoreboard,
-                  shape: BoxShape.circle,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF16A34A), Color(0xFF15803D)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.sports_cricket,
-                  color: CricitColors.ink,
-                ),
+                child: const Text('🏏', style: TextStyle(fontSize: 22)),
               ),
               const SizedBox(width: CricitSpace.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Daily cricket quiz',
-                      style: TextStyle(
-                        fontFamily: CricitFonts.display,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: CricitColors.onOutfield,
-                      ),
+                    Row(
+                      children: [
+                        const Text(
+                          'The Daily Over',
+                          style: TextStyle(
+                            fontFamily: CricitFonts.display,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: CricitColors.onOutfield,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                CricitColors.onOutfield.withValues(alpha: 0.18),
+                            borderRadius:
+                                BorderRadius.circular(CricitRadius.sm),
+                          ),
+                          child: const Text(
+                            'Daily cricket quiz',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: CricitColors.onOutfield,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'One question, one minute. Keep your streak going.',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: CricitColors.onOutfield.withValues(alpha: 0.85),
+                      '6 balls · 6 questions · Keep your streak alive',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CricitColors.onOutfield.withValues(alpha: 0.80),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: CricitColors.onOutfield,
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: CricitColors.onOutfield.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(CricitRadius.full),
+                ),
+                child: const Text(
+                  'PLAY',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: CricitColors.onOutfield,
+                    letterSpacing: 0.8,
+                  ),
+                ),
               ),
             ],
           ),
@@ -693,224 +737,772 @@ class _QuizBanner extends StatelessWidget {
   }
 }
 
-class _CricketTriviaSheet extends StatefulWidget {
+class _CricketTriviaSheet extends ConsumerStatefulWidget {
   const _CricketTriviaSheet();
 
   @override
-  State<_CricketTriviaSheet> createState() => _CricketTriviaSheetState();
+  ConsumerState<_CricketTriviaSheet> createState() =>
+      _CricketTriviaSheetState();
 }
 
-class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
+class _CricketTriviaSheetState extends ConsumerState<_CricketTriviaSheet> {
+  DailyOver? _over;
+  bool _loading = true;
+  bool _checking = false;
+  TriviaProblem? _problem;
+  int _currentBall = 0; // 0..5
   int? _selected;
   bool _revealed = false;
+  int? _currentCorrectIndex;
+  String? _currentExplanation;
+  final List<int?> _userAnswers = List.filled(6, null);
+  final List<bool?> _ballResults = List.filled(6, null);
+  bool _completed = false;
 
-  static const _options = [
-    'Dipendra Singh Airee (9 balls)',
-    'Yuvraj Singh (12 balls)',
-    'Chris Gayle (12 balls)',
-    'AB de Villiers (16 balls)',
-  ];
-  static const _correctIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    _loadTrivia();
+  }
 
-  void _choose(int idx) {
-    if (_revealed) return;
-    HapticFeedback.mediumImpact();
+  Future<void> _loadTrivia() async {
     setState(() {
-      _selected = idx;
-      _revealed = true;
+      _loading = true;
+      _problem = null;
     });
+    if (!ref.read(settingsProvider).signedIn) {
+      _show(problem: TriviaProblem.signInRequired);
+      return;
+    }
+    final repo = ref.read(triviaRepositoryProvider);
+    final over = await repo.fetchDailyOver();
+    if (over.problem != null) {
+      _show(problem: over.problem);
+      return;
+    }
+    final progress = await repo.fetchProgress();
+    if (progress.problem != null) {
+      _show(problem: progress.problem);
+      return;
+    }
+    _show(over: over.value, answered: progress.value!);
+  }
+
+  /// Applies a load result, resuming from balls already answered on the server today.
+  void _show({
+    DailyOver? over,
+    List<AnsweredBall> answered = const [],
+    TriviaProblem? problem,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _problem = problem;
+      _over = over;
+      for (final a in answered) {
+        final i = a.ballNumber - 1;
+        _userAnswers[i] = a.userAnswer;
+        _ballResults[i] = a.isCorrect;
+      }
+      final next = _userAnswers.indexWhere((a) => a == null);
+      _completed = over != null && next == -1;
+      _currentBall = next == -1 ? 5 : next;
+    });
+  }
+
+  Future<void> _choose(int idx) async {
+    if (_revealed ||
+        _checking ||
+        _over == null ||
+        _currentBall >= _over!.balls.length) {
+      return;
+    }
+    unawaited(HapticFeedback.mediumImpact());
+    setState(() {
+      _checking = true;
+      _selected = idx;
+    });
+    final result = await ref.read(triviaRepositoryProvider).verifyBall(
+          ballNumber: _currentBall + 1,
+          answer: idx,
+        );
+    if (!mounted) return;
+    final verification = result.value;
+    if (verification == null) {
+      setState(() {
+        _checking = false;
+        _selected = null;
+      });
+      _reportProblem(result.problem!);
+      return;
+    }
+    setState(() {
+      _checking = false;
+      _selected = verification.userAnswer;
+      _revealed = true;
+      _currentCorrectIndex = verification.correctIndex;
+      _currentExplanation = verification.explanation;
+      _userAnswers[_currentBall] = verification.userAnswer;
+      _ballResults[_currentBall] = verification.isCorrect;
+    });
+  }
+
+  void _reportProblem(TriviaProblem problem) {
+    if (problem == TriviaProblem.offline) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text("Couldn't check that answer. Tap it again."),
+        ),
+      );
+      return;
+    }
+    setState(() => _problem = problem);
+  }
+
+  void _nextBall() {
+    unawaited(HapticFeedback.lightImpact());
+    if (_currentBall < 5) {
+      setState(() {
+        _currentBall++;
+        _selected = null;
+        _revealed = false;
+        _currentCorrectIndex = null;
+        _currentExplanation = null;
+      });
+    } else {
+      _finishOver();
+    }
+  }
+
+  Future<void> _finishOver() async {
+    unawaited(HapticFeedback.mediumImpact());
+    // Points were banked by the server when ball 6 was verified; this only syncs totals.
+    await ref.read(triviaRepositoryProvider).finishOver();
+    if (mounted) {
+      setState(() {
+        _completed = true;
+      });
+    }
+  }
+
+  Widget _buildProblem(BuildContext context, TriviaProblem problem) {
+    final (icon, title, body, action, onAction) = switch (problem) {
+      TriviaProblem.signInRequired => (
+          Icons.lock_outline_rounded,
+          'Sign in to play',
+          'Every Daily Over earns Cricket IQ points, so it is for signed-in players.',
+          'Sign in with phone',
+          () {
+            Navigator.of(context).pop();
+            context.push('/signin');
+          },
+        ),
+      TriviaProblem.nameRequired => (
+          Icons.badge_outlined,
+          'Add your name to play',
+          'Set a display name on your profile so your points can be banked.',
+          'Go to profile',
+          () {
+            Navigator.of(context).pop();
+            context.go('/profile');
+          },
+        ),
+      TriviaProblem.notReady => (
+          Icons.hourglass_top_rounded,
+          "Today's over is being prepared",
+          'Fresh questions are on their way. Check back in a little while.',
+          'Try again',
+          _loadTrivia,
+        ),
+      TriviaProblem.offline => (
+          Icons.wifi_off_rounded,
+          "Couldn't load today's over",
+          'Check your connection and try again.',
+          'Try again',
+          _loadTrivia,
+        ),
+    };
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: CricitSpace.lg),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: theme.colorScheme.primary),
+          const SizedBox(height: CricitSpace.sm),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: CricitSpace.md),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton(onPressed: onAction, child: Text(action)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _categoryLabel(String category) {
+    switch (category.toLowerCase()) {
+      case 'trending':
+        return '🔥 TRENDING CRICKET';
+      case 'domestic':
+        return '🏆 INDIAN DOMESTIC (RANJI / SMAT / VHT)';
+      case 'grassroots':
+        return '🌱 INDIAN GRASSROOTS (NXTSPOT / HARRIS)';
+      case 'ipl':
+        return '⚡ IPL & T20 LEAGUE';
+      case 'international':
+        return '🌍 INTERNATIONAL CRICKET';
+      case 'rules':
+        return '📜 LAWS OF CRICKET';
+      default:
+        return '🏏 CRICKET TRIVIA';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final settings = ref.watch(settingsProvider);
+    final score = _ballResults.where((r) => r == true).length;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
       padding: EdgeInsets.only(
-        top: CricitSpace.lg,
+        top: CricitSpace.md,
         left: CricitSpace.lg,
         right: CricitSpace.lg,
-        bottom: MediaQuery.of(context).viewInsets.bottom + CricitSpace.xl,
+        bottom: MediaQuery.of(context).viewInsets.bottom + CricitSpace.lg,
       ),
       decoration: BoxDecoration(
         color: isDark ? CricitColors.surfaceDark : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: CricitSpace.md),
-
-          // Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: CricitColors.scoreboard.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(CricitRadius.sm),
-                ),
-                child: const Icon(
-                  Icons.sports_cricket,
-                  color: CricitColors.scoreboard,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: CricitSpace.sm),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'CRICKET WORD WHEEL',
-                      style: TextStyle(
-                        fontFamily: CricitFonts.display,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      'Daily 1-Minute Cricket Trivia',
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-          const SizedBox(height: CricitSpace.md),
-
-          // Question Card
-          Container(
-            padding: const EdgeInsets.all(CricitSpace.md),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1B2E24) : const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(CricitRadius.md),
-              border: Border.all(
-                color: CricitColors.outfield.withValues(alpha: 0.2),
-              ),
-            ),
-            child: const Text(
-              'Who holds the official record for the fastest fifty in Men’s T20 International cricket history?',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                height: 1.3,
-              ),
-            ),
-          ),
-          const SizedBox(height: CricitSpace.md),
-
-          // Options
-          for (var i = 0; i < _options.length; i++) ...[
-            InkWell(
-              onTap: () => _choose(i),
-              borderRadius: BorderRadius.circular(CricitRadius.md),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: _revealed
-                      ? (i == _correctIndex
-                          ? Colors.green.withValues(alpha: 0.15)
-                          : (_selected == i
-                              ? Colors.red.withValues(alpha: 0.15)
-                              : Colors.transparent))
-                      : (_selected == i
-                          ? theme.colorScheme.primary.withValues(alpha: 0.1)
-                          : Colors.transparent),
-                  borderRadius: BorderRadius.circular(CricitRadius.md),
-                  border: Border.all(
-                    color: _revealed
-                        ? (i == _correctIndex
-                            ? Colors.green
-                            : (_selected == i
-                                ? Colors.red
-                                : Colors.grey.withValues(alpha: 0.3)))
-                        : Colors.grey.withValues(alpha: 0.3),
-                    width: _revealed && (i == _correctIndex || _selected == i)
-                        ? 1.5
-                        : 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      String.fromCharCode(65 + i),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _revealed && i == _correctIndex
-                            ? Colors.green
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _options[i],
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: _revealed && i == _correctIndex
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                    if (_revealed && i == _correctIndex)
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.green,
-                        size: 18,
-                      )
-                    else if (_revealed && _selected == i && i != _correctIndex)
-                      const Icon(Icons.cancel, color: Colors.red, size: 18),
-                  ],
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: CricitSpace.sm),
-          ],
 
-          // Explanation note once answered
-          if (_revealed) ...[
-            const SizedBox(height: CricitSpace.xs),
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: CricitColors.scoreboard.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(CricitRadius.sm),
+                  ),
+                  child: const Icon(
+                    Icons.sports_cricket,
+                    color: CricitColors.scoreboard,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: CricitSpace.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'THE DAILY OVER',
+                        style: TextStyle(
+                          fontFamily: CricitFonts.display,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        _completed
+                            ? 'Scorecard · Final Over Result'
+                            : '6 Balls · 1 Point Per Ball · Today\'s Over',
+                        style:
+                            const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: CricitSpace.sm),
+
+            // Ball indicators (1 to 6)
             Container(
-              padding: const EdgeInsets.all(CricitSpace.sm),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white10
-                    : Colors.black.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(CricitRadius.sm),
+                color:
+                    isDark ? const Color(0xFF141F18) : const Color(0xFFF1F5F2),
+                borderRadius: BorderRadius.circular(CricitRadius.md),
               ),
-              child: Text(
-                _selected == _correctIndex
-                    ? '🎯 Spot on! Dipendra Singh Airee reached 50 off 9 balls for Nepal against Mongolia in the 2023 Asian Games, breaking Yuvraj Singh’s 16-year record (12 balls vs England, 2007).'
-                    : '💡 Trivia fact: Dipendra Singh Airee reached 50 off just 9 balls for Nepal in 2023, surpassing Yuvraj Singh’s iconic 12-ball benchmark from the 2007 T20 World Cup.',
-                style: const TextStyle(fontSize: 12, height: 1.35),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(6, (i) {
+                  final isCurrent = i == _currentBall && !_completed;
+                  final res = _ballResults[i];
+                  Color bg;
+                  Color border;
+                  Widget child;
+
+                  if (res == true) {
+                    bg = Colors.green.withValues(alpha: 0.2);
+                    border = Colors.green;
+                    child =
+                        const Icon(Icons.check, size: 14, color: Colors.green);
+                  } else if (res == false) {
+                    bg = Colors.red.withValues(alpha: 0.2);
+                    border = Colors.red;
+                    child =
+                        const Icon(Icons.close, size: 14, color: Colors.red);
+                  } else if (isCurrent) {
+                    bg = theme.colorScheme.primary.withValues(alpha: 0.15);
+                    border = theme.colorScheme.primary;
+                    child = Text(
+                      '${i + 1}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    );
+                  } else {
+                    bg = Colors.transparent;
+                    border = Colors.grey.withValues(alpha: 0.4);
+                    child = Text(
+                      '${i + 1}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    );
+                  }
+
+                  return Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: bg,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: border,
+                        width: isCurrent ? 2 : 1,
+                      ),
+                    ),
+                    child: child,
+                  );
+                }),
               ),
             ),
+            const SizedBox(height: CricitSpace.md),
+
+            // Content body: Loading, Question or Scorecard
+            if (_loading)
+              const SizedBox(
+                height: 220,
+                child: Center(
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              )
+            else if (_problem != null)
+              _buildProblem(context, _problem!)
+            else if (_completed)
+              _buildScorecard(context, theme, isDark, settings, score)
+            else
+              _buildQuestionView(context, theme, isDark),
           ],
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildQuestionView(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    if (_over == null || _currentBall >= _over!.balls.length) {
+      return const SizedBox.shrink();
+    }
+    final q = _over!.balls[_currentBall];
+    final correctIdx = _currentCorrectIndex ?? q.correctIndex ?? 0;
+    final explanation = _currentExplanation ?? q.explanation ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Category Pill
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: CricitColors.outfield.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(CricitRadius.full),
+            ),
+            child: Text(
+              _categoryLabel(q.category),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                color: CricitColors.outfield,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: CricitSpace.xs),
+
+        // Question Card
+        Container(
+          padding: const EdgeInsets.all(CricitSpace.md),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1B2E24) : const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(CricitRadius.md),
+            border: Border.all(
+              color: CricitColors.outfield.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Text(
+            q.question,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              height: 1.35,
+            ),
+          ),
+        ),
+        const SizedBox(height: CricitSpace.md),
+
+        // Options
+        for (var i = 0; i < q.options.length; i++) ...[
+          InkWell(
+            onTap: () => _choose(i),
+            borderRadius: BorderRadius.circular(CricitRadius.md),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: _revealed
+                    ? (i == correctIdx
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : (_selected == i
+                            ? Colors.red.withValues(alpha: 0.15)
+                            : Colors.transparent))
+                    : (_selected == i
+                        ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                        : Colors.transparent),
+                borderRadius: BorderRadius.circular(CricitRadius.md),
+                border: Border.all(
+                  color: _revealed
+                      ? (i == correctIdx
+                          ? Colors.green
+                          : (_selected == i
+                              ? Colors.red
+                              : Colors.grey.withValues(alpha: 0.3)))
+                      : Colors.grey.withValues(alpha: 0.3),
+                  width: _revealed && (i == correctIdx || _selected == i)
+                      ? 1.5
+                      : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    String.fromCharCode(65 + i),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: _revealed && i == correctIdx ? Colors.green : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      q.options[i],
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: _revealed && i == correctIdx
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  if (_revealed && i == correctIdx)
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 18,
+                    )
+                  else if (_revealed && _selected == i && i != correctIdx)
+                    const Icon(Icons.cancel, color: Colors.red, size: 18),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: CricitSpace.sm),
+        ],
+
+        // Explanation note once answered
+        if (_revealed) ...[
+          const SizedBox(height: CricitSpace.xs),
+          Container(
+            padding: const EdgeInsets.all(CricitSpace.sm),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(CricitRadius.sm),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _selected == correctIdx ? '🎯 ' : '💡 ',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                Expanded(
+                  child: Text(
+                    explanation,
+                    style: const TextStyle(fontSize: 12, height: 1.35),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: CricitSpace.md),
+
+          // Next Ball CTA
+          FilledButton.icon(
+            onPressed: _nextBall,
+            style: FilledButton.styleFrom(
+              backgroundColor: CricitColors.outfield,
+              foregroundColor: CricitColors.onOutfield,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(CricitRadius.md),
+              ),
+            ),
+            icon: Icon(
+              _currentBall < 5
+                  ? Icons.arrow_forward_rounded
+                  : Icons.scoreboard_outlined,
+              size: 18,
+            ),
+            label: Text(
+              _currentBall < 5
+                  ? 'Bowl Next Ball (${_currentBall + 2}/6)'
+                  : 'Finish Over & See Scorecard',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildScorecard(
+    BuildContext context,
+    ThemeData theme,
+    bool isDark,
+    AppSettings settings,
+    int score,
+  ) {
+    final title = score == 6
+        ? 'Maiden Over! Perfect 6/6 Runs 🌟'
+        : score >= 4
+            ? 'Superb Striking! $score/6 Runs 🏏'
+            : score >= 2
+                ? 'Steady Knock! $score/6 Runs 🎯'
+                : 'Tough Spell! $score/6 Runs 💪';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Trophy & Score Badge
+        Container(
+          padding: const EdgeInsets.all(CricitSpace.lg),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1B2E24), const Color(0xFF0F1E16)]
+                  : [const Color(0xFFF0FDF4), const Color(0xFFE0F2FE)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: CricitColors.outfield.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: CricitColors.outfield.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Text('🏆', style: TextStyle(fontSize: 28)),
+              ),
+              const SizedBox(height: CricitSpace.sm),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: CricitFonts.display,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'You bowled all 6 balls of today\'s daily over.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: CricitSpace.md),
+
+        // Auth Gating Banner
+        if (settings.signedIn) ...[
+          Container(
+            padding: const EdgeInsets.all(CricitSpace.md),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(CricitRadius.md),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.green,
+                  size: 24,
+                ),
+                const SizedBox(width: CricitSpace.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '+$score Cricket IQ Points Banked!',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        'Total: ${settings.triviaPoints} pts · Streak: ${settings.triviaStreak} days',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(CricitSpace.md),
+            decoration: BoxDecoration(
+              color: Colors.amber.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(CricitRadius.md),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.lock_outline_rounded,
+                      color: Colors.amber,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Score: $score/6 — Sign In to Bank Points!',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Points only count towards your profile rank and streak when signed in with phone.',
+                  style: TextStyle(fontSize: 11, height: 1.3),
+                ),
+                const SizedBox(height: CricitSpace.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      context.push('/signin');
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: CricitColors.outfield,
+                      foregroundColor: CricitColors.onOutfield,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    icon: const Icon(Icons.phone_android_rounded, size: 16),
+                    label: const Text(
+                      'Sign In to Save Points',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: CricitSpace.md),
+
+        // Done button
+        OutlinedButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

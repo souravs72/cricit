@@ -17,6 +17,8 @@ from app.core.redis import get_redis
 from app.repositories import sources as sources_repo
 from app.services import events as events_service
 from app.services.ingest import fetch_and_store, is_due, job_id_for
+from app.services.trivia import get_ist_today
+from app.services.trivia_generation import ensure_trivia_bank
 
 
 async def fetch_source(ctx: dict[str, Any], source_id: str) -> dict[str, Any]:
@@ -58,17 +60,45 @@ async def nightly_housekeeping(ctx: dict[str, Any]) -> None:
     """Archive old posts, purge expired ads, purge soft-deleted users past 30 days."""
 
 
+async def prepare_trivia_bank(ctx: dict[str, Any]) -> dict[str, Any]:
+    """AI-generate Daily Over questions for every missing day through the end of next month."""
+    del ctx
+    async with get_sessionmaker()() as db:
+        result = await ensure_trivia_bank(db, today=get_ist_today())
+    return {
+        "generated": [d.isoformat() for d in result.generated],
+        "failed": [d.isoformat() for d in result.failed],
+        "skipped_reason": result.skipped_reason,
+    }
+
+
 async def startup(ctx: dict[str, Any]) -> None:
     configure_logging(get_settings().log_level)
 
 
 class WorkerSettings:
-    functions: ClassVar[list[Any]] = [fetch_due_sources, fetch_source, fetch_youtube, rollup_stats]
+    functions: ClassVar[list[Any]] = [
+        fetch_due_sources,
+        fetch_source,
+        fetch_youtube,
+        rollup_stats,
+        prepare_trivia_bank,
+    ]
     cron_jobs: ClassVar[list[Any]] = [
         cron(fetch_due_sources, minute=set(range(0, 60, 2)), run_at_startup=False),
         cron(fetch_youtube, minute={5, 20, 35, 50}),
         cron(rollup_stats, minute={0}),
         cron(nightly_housekeeping, hour={21}, minute={30}),  # 03:00 IST
+        # Every 6 hours (03:45, 09:45, 15:45, 21:45 IST) and on worker start. Idempotent and
+        # nearest-day-first, so today and tomorrow are retried quickly if a run fails.
+        cron(
+            prepare_trivia_bank,
+            hour={4, 10, 16, 22},
+            minute={15},
+            run_at_startup=True,
+            timeout=1800,
+            max_tries=1,
+        ),
     ]
     on_startup = startup
     redis_settings = RedisSettings.from_dsn(get_settings().redis_url)
