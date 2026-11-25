@@ -54,7 +54,7 @@ android {
             dimension = "env"
             applicationId = "app.cricit"
             resValue("string", "app_name", "CRICIT")
-            manifestPlaceholders["usesCleartextTraffic"] = "false"
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
         }
     }
 
