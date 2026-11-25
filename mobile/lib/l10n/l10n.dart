@@ -123,4 +123,35 @@ class L10n {
   String get saveAndContinue =>
       isHindi ? 'सहेजें और आगे बढ़ें' : 'Save and continue';
   String get openSource => isHindi ? 'मूल खबर खोलें' : 'Open original story';
+  String get watchOnYouTube =>
+      isHindi ? 'YouTube पर देखें' : 'Watch on YouTube';
+  String shareText(String url) => isHindi
+      ? 'CRICIT पर एक मिनट में पढ़ें: $url'
+      : 'Read the 1-minute story on CRICIT: $url';
+  String get breaking => isHindi ? 'ब्रेकिंग' : 'Breaking';
+  String get justIn => isHindi ? 'अभी आई' : 'Just in';
+  String get sponsored => isHindi ? 'प्रायोजित' : 'Sponsored';
+  String get knowMore => isHindi ? 'और जानें' : 'Tap to know more';
+  String visitAdvertiser(String name) =>
+      isHindi ? '$name पर जाएँ' : 'Visit $name';
+  String get dismissAd => isHindi ? 'विज्ञापन हटाएँ' : 'Dismiss ad';
+  String get recentSearches => isHindi ? 'हाल की खोजें' : 'Recent searches';
+  String get clearAll => isHindi ? 'सब हटाएँ' : 'Clear all';
+  String get topStories => isHindi ? 'ताज़ा खबरें' : 'Top stories';
+  String get nxtspotSpotlight =>
+      isHindi ? 'नेक्स्टस्पॉट: ज़मीनी क्रिकेट' : 'Nxtspot: grassroots cricket';
+  String get seeAll => isHindi ? 'सब देखें' : 'See all';
+  String resultsFor(int n, String q) =>
+      isHindi ? '“$q” के लिए $n खबरें' : '$n stories for “$q”';
+  String get editProfile => isHindi ? 'प्रोफ़ाइल बदलें' : 'Edit profile';
+  String get bioLabel => isHindi ? 'आपके बारे में' : 'Your bio';
+  String get submit => isHindi ? 'सहेजें' : 'Save';
+  String get options => isHindi ? 'विकल्प' : 'Options';
+  String get hdImages => isHindi ? 'HD तस्वीरें' : 'HD images';
+  String get shareApp => isHindi ? 'ऐप साझा करें' : 'Share this app';
+  String get allSaved => isHindi ? 'सभी' : 'All';
+  String get articles => isHindi ? 'लेख' : 'Articles';
+  String get reels => isHindi ? 'रील्स' : 'Reels';
+  String get storiesRead => isHindi ? 'पढ़ी खबरें' : 'Read';
+  String get guest => isHindi ? 'मेहमान' : 'Guest';
 }

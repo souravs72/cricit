@@ -1,20 +1,26 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme.dart';
 import '../../../core/settings/settings_controller.dart';
+import '../../../core/time/story_time.dart';
+import '../../../core/widgets/arrive.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/in_app_web_sheet.dart';
-import '../../../core/widgets/live_pill.dart';
+import '../../../core/widgets/youtube_poster.dart';
 import '../../../l10n/l10n.dart';
 import '../../feed/data/feed_repository.dart';
-import '../../feed/data/fixture_feed.dart';
 import '../../feed/domain/news_card.dart';
+import '../../feed/presentation/feed_controller.dart';
 import '../../feed/presentation/news_card_view.dart';
 
+/// Search page (brief p.7): search bar, section shortcuts, top stories as a
+/// notification-style list, and the Nxtspot grassroots spotlight.
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
@@ -23,27 +29,60 @@ class SearchScreen extends ConsumerStatefulWidget {
 }
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
+  static const _recentKey = 'recent_searches';
   final _controller = TextEditingController();
+  final _focus = FocusNode();
   Timer? _debounce;
   var _query = '';
   var _loading = false;
   List<NewsCard> _results = const [];
+  List<String> _recent = const [];
 
   static const _chips = [
     'India',
+    'Ranji Trophy',
     'Bumrah',
     'IPL 2026',
+    'Syed Mushtaq Ali',
     'WPL',
     'Nxtspot',
     'Kohli',
-    'Ranji Trophy',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() => setState(() {}));
+    SharedPreferences.getInstance().then((p) {
+      if (!mounted) return;
+      setState(() => _recent = p.getStringList(_recentKey) ?? const []);
+    });
+  }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _focus.dispose();
     super.dispose();
+  }
+
+  Future<void> _remember(String q) async {
+    if (q.length < 2) return;
+    final next = [
+      q,
+      ..._recent.where((r) => r.toLowerCase() != q.toLowerCase()),
+    ].take(8).toList();
+    setState(() => _recent = next);
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList(_recentKey, next);
+  }
+
+  Future<void> _clearRecent() async {
+    unawaited(HapticFeedback.selectionClick());
+    setState(() => _recent = const []);
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_recentKey);
   }
 
   void _onChanged(String value) {
@@ -51,7 +90,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _debounce = Timer(const Duration(milliseconds: 300), () => _search(value));
   }
 
-  Future<void> _search(String value) async {
+  void _runChip(String text) {
+    HapticFeedback.selectionClick();
+    _controller.text = text;
+    _controller.selection = TextSelection.collapsed(offset: text.length);
+    _search(text, remember: true);
+  }
+
+  Future<void> _search(String value, {bool remember = false}) async {
     setState(() {
       _query = value.trim();
       _loading = _query.isNotEmpty;
@@ -60,14 +106,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       setState(() => _results = const []);
       return;
     }
+    final q = _query;
     final lang = ref.read(settingsProvider).language;
-    final found =
-        await ref.read(feedRepositoryProvider).search(_query, lang: lang);
-    if (!mounted) return;
+    final found = await ref.read(feedRepositoryProvider).search(q, lang: lang);
+    if (!mounted || q != _query) return;
     setState(() {
       _results = found;
       _loading = false;
     });
+    if (remember) unawaited(_remember(q));
   }
 
   void _showTriviaDialog(BuildContext context) {
@@ -84,30 +131,40 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     await HapticFeedback.lightImpact();
     if (!mounted) return;
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) {
-          final settings = ref.read(settingsProvider);
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(
-                card.category.toUpperCase(),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 240),
+        pageBuilder: (context, _, __) => Consumer(
+          builder: (context, ref, _) {
+            final settings = ref.watch(settingsProvider);
+            return Scaffold(
+              appBar: AppBar(title: Text(_sectionLabel(context, card))),
+              body: NewsCardView(
+                card: card,
+                saved: settings.bookmarks.contains(card.id),
+                forceHindi: settings.isHindi,
+                onToggleSave: () =>
+                    ref.read(settingsProvider.notifier).toggleBookmark(card.id),
+                onOpenSource: card.url == null
+                    ? null
+                    : () => InAppWebSheet.show(
+                          context,
+                          url: card.url!,
+                          sourceName: card.sourceName ?? 'CRICIT',
+                          headline: card.headline,
+                        ),
               ),
-            ),
-            body: NewsCardView(
-              card: card,
-              saved: settings.bookmarks.contains(card.id),
-              forceHindi: settings.isHindi,
-              onToggleSave: () =>
-                  ref.read(settingsProvider.notifier).toggleBookmark(card.id),
-              onOpenSource: card.url == null
-                  ? null
-                  : () => InAppWebSheet.show(
-                        context,
-                        url: card.url!,
-                        sourceName: card.sourceName ?? 'CRICIT',
-                        headline: card.headline,
-                      ),
+            );
+          },
+        ),
+        transitionsBuilder: (context, anim, _, child) {
+          final t = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+          return FadeTransition(
+            opacity: t,
+            child: SlideTransition(
+              position: Tween(begin: const Offset(0, 0.06), end: Offset.zero)
+                  .animate(t),
+              child: child,
             ),
           );
         },
@@ -119,16 +176,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final allFixtures = fixtureCards();
-    final nxtspot = allFixtures.where((c) => c.kind == 'nxtspot').toList();
-    final notifications = allFixtures.take(3).toList();
+    final feed = ref.watch(feedControllerProvider('feed')).cards;
+    final nxt = ref.watch(feedControllerProvider('nxtspot')).cards;
+    final top = feed.where((c) => !c.isAd).take(5).toList();
+    final nxtspot = nxt.where((c) => !c.isAd).take(6).toList();
+    final focused = _focus.hasFocus;
 
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Search Bar Input
           Padding(
             padding: const EdgeInsets.fromLTRB(
               CricitSpace.md,
@@ -136,316 +193,210 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               CricitSpace.md,
               CricitSpace.sm,
             ),
-            child: TextField(
-              controller: _controller,
-              onChanged: _onChanged,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                labelText: l10n.searchLabel,
-                hintText: 'Search cricket news, teams, players...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _controller.clear();
-                          _search('');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: isDark
-                    ? CricitColors.surfaceDark
-                    : CricitColors.sightscreen,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(CricitRadius.md),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.3),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(CricitRadius.full),
+                boxShadow: [
+                  if (focused)
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.18),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                ],
+              ),
+              child: TextField(
+                controller: _controller,
+                focusNode: _focus,
+                onChanged: _onChanged,
+                onSubmitted: (v) => _search(v, remember: true),
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: l10n.searchHint,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          tooltip: l10n.clearAll,
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () {
+                            _controller.clear();
+                            _search('');
+                          },
+                        )
+                      : null,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(CricitRadius.full),
+                    borderSide: BorderSide(color: theme.dividerColor),
                   ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(CricitRadius.md),
-                  borderSide: BorderSide(
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(CricitRadius.full),
+                    borderSide: BorderSide(color: theme.dividerColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(CricitRadius.full),
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-
-          // Main Search or Discover Content
           Expanded(
-            child: _query.isNotEmpty
-                ? _buildSearchResults(l10n)
-                : _buildDiscoverFeed(l10n, theme, isDark, notifications, nxtspot),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              switchInCurve: Curves.easeOutCubic,
+              child: _query.isNotEmpty
+                  ? KeyedSubtree(
+                      key: const ValueKey('results'),
+                      child: _buildSearchResults(l10n, theme),
+                    )
+                  : KeyedSubtree(
+                      key: const ValueKey('discover'),
+                      child: _buildDiscover(l10n, theme, top, nxtspot),
+                    ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDiscoverFeed(
+  Widget _sectionHeader(ThemeData theme, String title, {Widget? trailing}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        CricitSpace.md,
+        CricitSpace.lg,
+        CricitSpace.sm,
+        CricitSpace.sm,
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: theme.textTheme.titleLarge)),
+          if (trailing != null) trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscover(
     L10n l10n,
     ThemeData theme,
-    bool isDark,
-    List<NewsCard> notifications,
+    List<NewsCard> top,
     List<NewsCard> nxtspot,
   ) {
+    var i = 0;
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: CricitSpace.md),
+      padding: const EdgeInsets.only(bottom: CricitSpace.xl),
       children: [
-        const SizedBox(height: CricitSpace.xs),
-
-        // Inshorts Word Wheel / Daily Trivia widget (interactive daily trivia)
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _showTriviaDialog(context),
-            borderRadius: BorderRadius.circular(CricitRadius.md),
-            child: Container(
-              padding: const EdgeInsets.all(CricitSpace.md),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF1B3827), const Color(0xFF0F2419)]
-                      : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(CricitRadius.md),
-                border: Border.all(
-                  color: CricitColors.outfield.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: const BoxDecoration(
-                      color: CricitColors.scoreboard,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.sports_cricket,
-                      size: 22,
-                      color: CricitColors.ink,
-                    ),
-                  ),
-                  const SizedBox(width: CricitSpace.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Text(
-                              'CRICKET WORD WHEEL',
-                              style: TextStyle(
-                                fontFamily: CricitFonts.display,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'DAILY',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                                color: CricitColors.outfield,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Play today’s 1-min trivia: Test your cricket IQ & earn fan streaks!',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark ? Colors.white70 : CricitColors.ink,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios, size: 14),
-                ],
+        Arrive(
+          index: i++,
+          child: SizedBox(
+            height: 44,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: CricitSpace.md),
+              itemCount: _chips.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: CricitSpace.sm),
+              itemBuilder: (context, n) => ActionChip(
+                label: Text(_chips[n]),
+                onPressed: () => _runChip(_chips[n]),
               ),
             ),
           ),
         ),
-        const SizedBox(height: CricitSpace.md),
-
-        // Trending Topics Chips
-        Text(
-          l10n.trending,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+        if (_recent.isNotEmpty)
+          Arrive(
+            index: i++,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _sectionHeader(
+                  theme,
+                  l10n.recentSearches,
+                  trailing: TextButton(
+                    onPressed: _clearRecent,
+                    child: Text(l10n.clearAll),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: CricitSpace.md,
+                  ),
+                  child: Wrap(
+                    spacing: CricitSpace.sm,
+                    runSpacing: CricitSpace.xs,
+                    children: [
+                      for (final r in _recent)
+                        InputChip(
+                          avatar: const Icon(Icons.history_rounded, size: 16),
+                          label: Text(r),
+                          onPressed: () => _runChip(r),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Arrive(
+          index: i++,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              CricitSpace.md,
+              CricitSpace.lg,
+              CricitSpace.md,
+              0,
+            ),
+            child: _QuizBanner(onTap: () => _showTriviaDialog(context)),
           ),
         ),
-        const SizedBox(height: CricitSpace.sm),
-        Wrap(
-          spacing: CricitSpace.sm,
-          runSpacing: CricitSpace.xs,
-          children: [
-            for (final chip in _chips)
-              ActionChip(
-                label: Text(chip),
-                avatar: const Icon(Icons.trending_up, size: 14),
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  _controller.text = chip;
-                  _search(chip);
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: CricitSpace.lg),
-
-        // Breaking News & Notifications section (from Page 7 screenshot)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'NOTIFICATIONS & BREAKING',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                color: theme.colorScheme.primary,
-              ),
+        if (top.isNotEmpty) ...[
+          Arrive(
+            index: i++,
+            child: _sectionHeader(theme, l10n.topStories),
+          ),
+          for (final card in top)
+            Arrive(
+              index: i++,
+              child: _StoryTile(card: card, onTap: () => _openCard(card)),
             ),
-            const LivePill(label: 'Live'),
-          ],
-        ),
-        const SizedBox(height: CricitSpace.sm),
-        ...notifications.map((card) => _buildNotificationTile(card)),
-
-        const SizedBox(height: CricitSpace.lg),
-
-        // Nxtspot Grassroots Spotlight Section
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'NXTSPOT GRASSROOTS DISCOVERIES',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                color: const Color(0xFF0F766E),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F766E).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'EXCLUSIVE',
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF0F766E),
+        ],
+        if (nxtspot.isNotEmpty) ...[
+          Arrive(
+            index: i++,
+            child: _sectionHeader(theme, l10n.nxtspotSpotlight),
+          ),
+          Arrive(
+            index: i++,
+            child: SizedBox(
+              height: 220,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CricitSpace.md,
+                ),
+                itemCount: nxtspot.length,
+                separatorBuilder: (_, __) =>
+                    const SizedBox(width: CricitSpace.md - 4),
+                itemBuilder: (context, n) => _SpotlightCard(
+                  card: nxtspot[n],
+                  onTap: () => _openCard(nxtspot[n]),
                 ),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: CricitSpace.sm),
-        ...nxtspot.map((c) => _buildNxtspotTile(c)),
-        const SizedBox(height: CricitSpace.xl),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildNotificationTile(NewsCard card) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: CricitSpace.sm),
-      elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(CricitRadius.md),
-      ),
-      child: ListTile(
-        onTap: () => _openCard(card),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(CricitRadius.sm),
-          child: card.image != null
-              ? Image.network(
-                  card.image!,
-                  width: 52,
-                  height: 52,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const ColoredBox(
-                    color: Colors.grey,
-                    child: Icon(Icons.sports_cricket, size: 20),
-                  ),
-                )
-              : const ColoredBox(
-                  color: Colors.grey,
-                  child: Icon(Icons.sports_cricket, size: 20),
-                ),
-        ),
-        title: Text(
-          card.headline,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          '${card.sourceName ?? "CRICIT"} · ${card.category}',
-          style: const TextStyle(fontSize: 11),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-      ),
-    );
-  }
-
-  Widget _buildNxtspotTile(NewsCard card) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: CricitSpace.sm),
-      elevation: 0,
-      color: const Color(0xFF0F766E).withValues(alpha: 0.08),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(CricitRadius.md),
-        side: BorderSide(color: const Color(0xFF0F766E).withValues(alpha: 0.2)),
-      ),
-      child: ListTile(
-        onTap: () => _openCard(card),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(CricitRadius.sm),
-          child: card.image != null
-              ? Image.network(
-                  card.image!,
-                  width: 52,
-                  height: 52,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const ColoredBox(
-                    color: Color(0xFF0F766E),
-                    child: Icon(Icons.star, color: Colors.white, size: 20),
-                  ),
-                )
-              : const ColoredBox(
-                  color: Color(0xFF0F766E),
-                  child: Icon(Icons.star, color: Colors.white, size: 20),
-                ),
-        ),
-        title: Text(
-          card.headline,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-        ),
-        subtitle: const Text(
-          'Nxtspot · Grassroots Cricket',
-          style: TextStyle(fontSize: 11, color: Color(0xFF0F766E), fontWeight: FontWeight.w600),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-      ),
-    );
-  }
-
-  Widget _buildSearchResults(L10n l10n) {
+  Widget _buildSearchResults(L10n l10n, ThemeData theme) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -456,39 +407,288 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         body: l10n.noResultsBody,
       );
     }
-    return ListView.separated(
-      padding: const EdgeInsets.all(CricitSpace.md),
-      itemCount: _results.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, i) {
-        final card = _results[i];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 4),
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(CricitRadius.sm),
-            child: card.image != null
-                ? Image.network(
-                    card.image!,
-                    width: 52,
-                    height: 52,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const ColoredBox(color: Colors.grey),
-                  )
-                : const ColoredBox(color: Colors.grey),
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: CricitSpace.lg),
+      itemCount: _results.length + 1,
+      itemBuilder: (context, n) {
+        if (n == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(
+              CricitSpace.md,
+              CricitSpace.sm,
+              CricitSpace.md,
+              CricitSpace.xs,
+            ),
+            child: Text(
+              l10n.resultsFor(_results.length, _query),
+              style: theme.textTheme.labelMedium,
+            ),
+          );
+        }
+        final card = _results[n - 1];
+        return Arrive(
+          index: n,
+          child: _StoryTile(
+            card: card,
+            onTap: () {
+              unawaited(_remember(_query));
+              _openCard(card);
+            },
           ),
-          title: Text(
-            card.headline,
-            maxLines: 2,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          subtitle: Text(
-            '${card.sourceName ?? card.category} · ${card.kind}',
-            style: const TextStyle(fontSize: 11),
-          ),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 12),
-          onTap: () => _openCard(card),
         );
       },
+    );
+  }
+}
+
+String _sectionLabel(BuildContext context, NewsCard card) {
+  final l10n = L10n.of(context);
+  if (card.kind == 'nxtspot' || card.category == 'grassroots') {
+    return l10n.tabNxtspot;
+  }
+  if (card.isVideo) return l10n.tabVideo;
+  return switch (card.category) {
+    'domestic' => l10n.tabDomestic,
+    'international' => l10n.tabInternational,
+    _ => l10n.appName,
+  };
+}
+
+String? _thumbOf(NewsCard card) =>
+    card.image ??
+    (card.videoId == null ? null : youTubePosterUrl(card.videoId!));
+
+/// Notification-style row: headline and credit on the left, thumbnail right.
+class _StoryTile extends StatelessWidget {
+  const _StoryTile({required this.card, required this.onTap});
+
+  final NewsCard card;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final thumb = _thumbOf(card);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: CricitSpace.md,
+          vertical: CricitSpace.sm + 2,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    card.headline,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(height: 1.3),
+                  ),
+                  const SizedBox(height: CricitSpace.xs),
+                  Row(
+                    children: [
+                      if (card.isBreaking) ...[
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.error,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: CricitSpace.xs + 2),
+                      ],
+                      Flexible(
+                        child: Text(
+                          '${card.sourceName ?? _sectionLabel(context, card)} · ${storyTimeLabel(card.publishedAt)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: CricitSpace.md - 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(CricitRadius.md - 4),
+              child: SizedBox(
+                width: 84,
+                height: 64,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (thumb == null)
+                      ColoredBox(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        child: Icon(
+                          Icons.sports_cricket,
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    else
+                      CachedNetworkImage(
+                        imageUrl: thumb,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => ColoredBox(
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    if (card.isVideo)
+                      const Center(
+                        child: Icon(
+                          Icons.play_circle_fill_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tall card in the Nxtspot spotlight carousel. Presses down slightly.
+class _SpotlightCard extends StatefulWidget {
+  const _SpotlightCard({required this.card, required this.onTap});
+
+  final NewsCard card;
+  final VoidCallback onTap;
+
+  @override
+  State<_SpotlightCard> createState() => _SpotlightCardState();
+}
+
+class _SpotlightCardState extends State<_SpotlightCard> {
+  var _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final thumb = _thumbOf(widget.card);
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _down = true),
+      onTapCancel: () => setState(() => _down = false),
+      onTapUp: (_) => setState(() => _down = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 140),
+        scale: _down ? 0.97 : 1,
+        child: SizedBox(
+          width: 168,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(CricitRadius.md),
+                child: SizedBox(
+                  height: 120,
+                  width: 168,
+                  child: thumb == null
+                      ? const ColoredBox(color: CricitColors.outfield)
+                      : CachedNetworkImage(
+                          imageUrl: thumb,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) =>
+                              const ColoredBox(color: CricitColors.outfield),
+                        ),
+                ),
+              ),
+              const SizedBox(height: CricitSpace.sm),
+              Text(
+                widget.card.headline,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Entry to the daily one-question quiz.
+class _QuizBanner extends StatelessWidget {
+  const _QuizBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: CricitColors.outfield,
+      borderRadius: BorderRadius.circular(CricitRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(CricitRadius.md),
+        child: Padding(
+          padding: const EdgeInsets.all(CricitSpace.md),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: CricitColors.scoreboard,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.sports_cricket,
+                  color: CricitColors.ink,
+                ),
+              ),
+              const SizedBox(width: CricitSpace.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Daily cricket quiz',
+                      style: TextStyle(
+                        fontFamily: CricitFonts.display,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: CricitColors.onOutfield,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'One question, one minute. Keep your streak going.',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: CricitColors.onOutfield.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: CricitColors.onOutfield,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -604,7 +804,9 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1B2E24) : const Color(0xFFF0FDF4),
               borderRadius: BorderRadius.circular(CricitRadius.md),
-              border: Border.all(color: CricitColors.outfield.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: CricitColors.outfield.withValues(alpha: 0.2),
+              ),
             ),
             child: const Text(
               'Who holds the official record for the fastest fifty in Men’s T20 International cricket history?',
@@ -624,7 +826,8 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
               borderRadius: BorderRadius.circular(CricitRadius.md),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: _revealed
                       ? (i == _correctIndex
@@ -640,9 +843,13 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
                     color: _revealed
                         ? (i == _correctIndex
                             ? Colors.green
-                            : (_selected == i ? Colors.red : Colors.grey.withValues(alpha: 0.3)))
+                            : (_selected == i
+                                ? Colors.red
+                                : Colors.grey.withValues(alpha: 0.3)))
                         : Colors.grey.withValues(alpha: 0.3),
-                    width: _revealed && (i == _correctIndex || _selected == i) ? 1.5 : 1,
+                    width: _revealed && (i == _correctIndex || _selected == i)
+                        ? 1.5
+                        : 1,
                   ),
                 ),
                 child: Row(
@@ -669,7 +876,11 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
                       ),
                     ),
                     if (_revealed && i == _correctIndex)
-                      const Icon(Icons.check_circle, color: Colors.green, size: 18)
+                      const Icon(
+                        Icons.check_circle,
+                        color: Colors.green,
+                        size: 18,
+                      )
                     else if (_revealed && _selected == i && i != _correctIndex)
                       const Icon(Icons.cancel, color: Colors.red, size: 18),
                   ],
@@ -685,7 +896,9 @@ class _CricketTriviaSheetState extends State<_CricketTriviaSheet> {
             Container(
               padding: const EdgeInsets.all(CricitSpace.sm),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+                color: isDark
+                    ? Colors.white10
+                    : Colors.black.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(CricitRadius.sm),
               ),
               child: Text(

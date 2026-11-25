@@ -62,7 +62,8 @@ List<NewsCard> fixtureCards() {
       id: '0192f1a0-0000-7000-8000-000000000004',
       kind: 'nxtspot',
       category: 'grassroots',
-      headline: '16-year-old spinner claims 7 wickets in Palakkad District U-19 match',
+      headline:
+          '16-year-old spinner claims 7 wickets in Palakkad District U-19 match',
       headlineHi: 'पालक्काड़ में 16 साल की खिलाड़ी ने लिए 7 विकेट',
       summary:
           'Anjali Menon, opening the bowling for Palakkad District, took 7 for 9 in an under-19 game on a damp matting wicket. A parent filmed the hat-trick ball. Nxtspot brings you grassroot talent nobody else covers.',
@@ -101,8 +102,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'विराट कोहली का कवर ड्राइव स्लो मोशन में',
       summary:
           'Head over the ball, high front elbow, zero follow-through exaggeration: perfection in high-frame-rate replay.',
-      summaryHi:
-          'परफेक्ट बैलेंस, शानदार फुटवर्क, गेंद बाउंड्री के पार।',
+      summaryHi: 'परफेक्ट बैलेंस, शानदार फुटवर्क, गेंद बाउंड्री के पार।',
       publishedAt: now.subtract(const Duration(hours: 2)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000006',
       sourceName: 'Star Sports Shorts',
@@ -133,8 +133,10 @@ List<NewsCard> fixtureCards() {
       id: '0192f1a0-0000-7000-8000-000000000008',
       kind: 'read',
       category: 'international',
-      headline: 'BCCI on X: Team India Test squad announced for Australia series',
-      headlineHi: 'बीसीसीआई एक्स अपडेट: ऑस्ट्रेलिया सीरीज के लिए भारतीय टीम घोषित',
+      headline:
+          'BCCI on X: Team India Test squad announced for Australia series',
+      headlineHi:
+          'बीसीसीआई एक्स अपडेट: ऑस्ट्रेलिया सीरीज के लिए भारतीय टीम घोषित',
       summary:
           'The Senior Men’s Selection Committee announced an 18-member squad with Jasprit Bumrah as vice-captain. Rohit Sharma will lead the team across the five-Test series.',
       summaryHi:
@@ -227,8 +229,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'मिशेल स्टार्क की 150 किमी/घंटा की स्विंग यॉर्कर',
       summary:
           'Fast, late swing in the air at 150 kph, spearing directly into the base of the off stump.',
-      summaryHi:
-          'स्टार्क की तेज गेंद जिसने स्टंप के दो टुकड़े कर दिए।',
+      summaryHi: 'स्टार्क की तेज गेंद जिसने स्टंप के दो टुकड़े कर दिए।',
       publishedAt: now.subtract(const Duration(hours: 7)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000013',
       sourceName: 'Cricket Australia Shorts',
@@ -245,8 +246,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'रिंकू सिंह के आखिरी ओवर में लगातार 5 छक्के',
       summary:
           '28 needed off 5 balls. Rinku Singh connects with five consecutive monstrous sixes to seal an impossible victory.',
-      summaryHi:
-          'क्रिकेट इतिहास का सबसे रोमांचक फिनिश: रिंकू सिंह का करिश्मा।',
+      summaryHi: 'क्रिकेट इतिहास का सबसे रोमांचक फिनिश: रिंकू सिंह का करिश्मा।',
       publishedAt: now.subtract(const Duration(hours: 8)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000014',
       sourceName: 'IPL Shorts',
@@ -263,8 +263,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'ग्लेन मैक्सवेल का स्विच-हिट छक्का',
       summary:
           'Changing grip and stance in a split second to reverse-hit a 140 kph delivery 85 metres over third man.',
-      summaryHi:
-          'मैक्सवेल का हैरान कर देने वाला स्विच हिट शॉट।',
+      summaryHi: 'मैक्सवेल का हैरान कर देने वाला स्विच हिट शॉट।',
       publishedAt: now.subtract(const Duration(hours: 9)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000015',
       sourceName: 'Cricket Australia Shorts',
@@ -281,8 +280,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'रवींद्र जडेजा का सटीक थ्रो और डायरेक्ट हिट',
       summary:
           'One stump to aim at on the turn, picking up cleanly and hitting the bullseye in one fluid motion.',
-      summaryHi:
-          'जडेजा का बिजली की तेजी से रन आउट।',
+      summaryHi: 'जडेजा का बिजली की तेजी से रन आउट।',
       publishedAt: now.subtract(const Duration(hours: 10)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000016',
       sourceName: 'BCCI YouTube',
@@ -299,8 +297,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'हार्दिक पांड्या का लॉन्ग-ऑन पर धमाकेदार फिनिश',
       summary:
           'Standing tall in the crease, high elbow, and hitting through the line with ferocious power into the second tier.',
-      summaryHi:
-          'हार्दिक पांड्या का मैच जिताऊ छक्का।',
+      summaryHi: 'हार्दिक पांड्या का मैच जिताऊ छक्का।',
       publishedAt: now.subtract(const Duration(hours: 11)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000017',
       sourceName: 'Star Sports Shorts',
@@ -317,8 +314,7 @@ List<NewsCard> fixtureCards() {
       headlineHi: 'शुभमन गिल का स्टाइलिश शॉर्ट-आर्म जैब',
       summary:
           'Quick hands, pure timing, punching a back-of-a-length delivery effortlessly over deep midwicket.',
-      summaryHi:
-          'शुभमन गिल का शानदार छक्का।',
+      summaryHi: 'शुभमन गिल का शानदार छक्का।',
       publishedAt: now.subtract(const Duration(hours: 12)),
       shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000018',
       sourceName: 'BCCI YouTube',
@@ -327,12 +323,127 @@ List<NewsCard> fixtureCards() {
       url: 'https://www.youtube.com/shorts/d0rik_SRktg',
       tags: const ['India', 'Gill', 'Shorts'],
     ),
+    // Dev fixtures for the Domestic and Nxtspot tabs (BCCI domestic and
+    // Indian grassroots only). Invented sample copy, never shipped as news.
+    NewsCard(
+      id: '0192f1a0-0000-7000-8000-000000000101',
+      kind: 'read',
+      category: 'domestic',
+      headline: 'Baroda chase 211 to stay top of their SMAT group',
+      headlineHi: 'बड़ौदा ने 211 का पीछा कर SMAT ग्रुप में शीर्ष स्थान बचाया',
+      summary:
+          'Baroda chased 211 with two balls left in the Syed Mushtaq Ali Trophy, the highest successful chase of the group stage so far. Their openers put on 96 inside the powerplay, and the finish came from a 19-ball 44 at number six. Baroda need one more win to seal a quarter-final place.',
+      publishedAt: now.subtract(const Duration(hours: 3)),
+      shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000101',
+      sourceName: 'BCCI Domestic',
+      image:
+          'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=1200&q=80',
+      url: 'https://www.bcci.tv/domestic',
+      tags: const ['SMAT', 'Baroda'],
+    ),
+    NewsCard(
+      id: '0192f1a0-0000-7000-8000-000000000102',
+      kind: 'read',
+      category: 'domestic',
+      headline: 'Karnataka open Vijay Hazare defence with a 9-wicket win',
+      summary:
+          'Karnataka began the defence of their Vijay Hazare Trophy title by bowling Chandigarh out for 167 and chasing it in 29 overs. A left-arm seamer took four in his first spell, and the openers finished it without fuss. Karnataka play Tamil Nadu next in the group’s toughest fixture.',
+      publishedAt: now.subtract(const Duration(hours: 9)),
+      shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000102',
+      sourceName: 'Cricbuzz',
+      image:
+          'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1200&q=80',
+      url: 'https://www.cricbuzz.com/cricket-news',
+      tags: const ['Vijay Hazare', 'Karnataka'],
+    ),
+    NewsCard(
+      id: '0192f1a0-0000-7000-8000-000000000103',
+      kind: 'nxtspot',
+      category: 'grassroots',
+      headline: 'Harris Shield: 14-year-old opener bats through 50 overs',
+      summary:
+          'A 14-year-old opener carried his bat for 141 in a Harris Shield quarter-final at Azad Maidan, the longest innings of this season’s inter-school tournament. His school reached 262 and bowled their rivals out for 188. Coaches at the ground say he has been called to the Mumbai U-16 camp next month.',
+      publishedAt: now.subtract(const Duration(hours: 7)),
+      shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000103',
+      sourceName: 'Nxtspot Grassroots',
+      image:
+          'https://images.unsplash.com/photo-1593341646782-e0b495cff52a?auto=format&fit=crop&w=1200&q=80',
+      tags: const ['Nxtspot', 'Harris Shield'],
+    ),
+    NewsCard(
+      id: '0192f1a0-0000-7000-8000-000000000104',
+      kind: 'nxtspot',
+      category: 'grassroots',
+      headline: 'Cooch Behar Trophy: Bihar quick takes 6 for 31 on debut',
+      summary:
+          'A 17-year-old fast bowler from Gaya took 6 for 31 on his Cooch Behar Trophy debut, bowling a spell of 9 overs unchanged on a flat Patna track. He learnt the game in a tennis-ball league and joined a district academy two years ago. Nxtspot will follow his season.',
+      publishedAt: now.subtract(const Duration(hours: 11)),
+      shareUrl: 'https://cricit.app/p/0192f1a0-0000-7000-8000-000000000104',
+      sourceName: 'Nxtspot Grassroots',
+      image:
+          'https://images.unsplash.com/photo-1593341646782-e0b495cff52a?auto=format&fit=crop&w=1200&q=80',
+      tags: const ['Nxtspot', 'Cooch Behar Trophy'],
+    ),
   ];
 }
 
+/// House ads used when the API is unreachable in dev, so every ad format in
+/// the brief (full page, footer, sponsored short post) can be seen.
+const fixtureAds = [
+  AdSlot(
+    format: 'full_page',
+    advertiser: 'CRICIT',
+    title: 'Every Ranji Trophy session, in a minute',
+    body: 'Turn on match-day alerts for your state team.',
+    creative:
+        'https://images.unsplash.com/photo-1512719994953-eabf50895df7?auto=format&fit=crop&w=1200&q=80',
+    clickUrl: 'https://cricit.app',
+  ),
+  AdSlot(
+    format: 'sponsored_card',
+    advertiser: 'Nxtspot Academy Trials',
+    title: 'U-16 trials open in 12 districts this month',
+    body:
+        'Register your club or academy to have its matches covered on Nxtspot. Scorecards, a short report and a highlight clip for every fixture.',
+    creative:
+        'https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=1200&q=80',
+    clickUrl: 'https://cricit.app/nxtspot',
+  ),
+  AdSlot(
+    format: 'footer',
+    advertiser: 'CRICIT',
+    title: 'Get breaking cricket alerts first',
+    clickUrl: 'https://cricit.app',
+  ),
+];
+
+/// Mirrors backend `interleave` (app/services/feed.py): My Feed excludes
+/// grassroots stories from the main flow and mixes one Nxtspot story and
+/// one ad back in at a fixed rhythm.
 FeedPage fixturePage(String tab) {
   var cards = fixtureCards();
   switch (tab) {
+    case 'feed':
+      bool isNxt(NewsCard c) =>
+          c.kind == 'nxtspot' || c.category == 'grassroots';
+      final nxt = cards.where(isNxt).toList();
+      final main = cards.where((c) => !isNxt(c)).toList();
+      final out = <NewsCard>[];
+      var adI = 0;
+      var nxI = 0;
+      for (var n = 1; n <= main.length; n++) {
+        var card = main[n - 1];
+        if (n == 2) card = card.withFooterAd(fixtureAds[2]);
+        out.add(card);
+        if (n % 3 == 0 && nxt.isNotEmpty) {
+          out.add(nxt[nxI++ % nxt.length]);
+        }
+        if (n % 4 == 0) {
+          final slot = fixtureAds[adI++ % 2];
+          out.add(NewsCard.fromAdSlot(slot, out.length));
+        }
+      }
+      cards = out;
     case 'video':
       cards = cards.where((c) => c.kind == 'video').toList();
     case 'domestic':

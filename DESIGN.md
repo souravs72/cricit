@@ -108,8 +108,18 @@ Inshorts look (white, blue accents, generic sans), which the brief asks us to st
 
 ## Motion
 
-Only where the person acts: the card swipe, the "New posts" pill, a sheet opening. No entrance
-animations on page load. Reduced-motion settings are respected.
+Motion follows the person's hand, plus a short arrival when a screen opens.
+
+- **Swipes drive the deck.** Story cards: the card being left sinks back (slight scale and dim), the
+  picture drifts against the swipe, and the headline and summary settle in as the card lands.
+  Reels: the outgoing reel recedes (lags the finger, scales down, rounds its corners, dims) while the
+  next slides over it; the reel's title and actions arrive just after the video.
+- **Arrival.** Sections of Search, Profile and Options fade and lift in once, staggered 45 ms, in
+  under half a second. Never on the feed deck itself, never looping.
+- **Feedback.** Save pops, the EN/हिं switch and tab indicator slide, "New posts" drops in from
+  the tab bar, the source link's arrow nudges when pressed.
+- Durations 160–420 ms, ease-out curves; no bounce except the save pop.
+- Reduced-motion settings turn all of this off: cards and reels cut, sections appear in place.
 
 ## Floor
 

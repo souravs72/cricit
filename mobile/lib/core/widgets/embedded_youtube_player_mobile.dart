@@ -1,11 +1,13 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import 'video_frame_math.dart';
+import 'youtube_poster.dart';
 
 /// Native mobile (Android & iOS) implementation of the embedded YouTube player.
 /// Uses `youtube_player_iframe` and `webview_flutter_android` to play videos
@@ -55,6 +57,11 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
   bool _isTestEnvironment = false;
   bool _started = false;
 
+  /// True once a preloaded (off-screen) player has buffered its first
+  /// segment and been parked at 0s, so activation starts with no network wait.
+  bool _warmed = false;
+  bool _warming = false;
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +101,7 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
       final state = value.playerState;
       if (!mounted) return;
       if (state == PlayerState.playing && widget.isActive) {
+        _warming = false;
         _controller!.unMute();
       }
       // Player became ready after the page was already activated -> play.
@@ -102,9 +110,26 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
           widget.autoPlay) {
         _controller!.playVideo();
       }
-      // Went off-screen while loading/auto-playing -> stop.
+      // Next reel in line: start it muted for a moment so the first segment
+      // buffers, then park it at 0s (handled below). Activation is then
+      // instant instead of waiting on the network.
+      if (state == PlayerState.cued &&
+          widget.isPreload &&
+          !widget.isActive &&
+          !_warmed &&
+          !_warming) {
+        _warming = true;
+        _controller!.mute();
+        _controller!.playVideo();
+      }
+      // Went off-screen while loading/auto-playing (or finished warming) -> stop.
       if (state == PlayerState.playing && !widget.isActive) {
         _controller!.pauseVideo();
+        if (_warming) {
+          _warming = false;
+          _warmed = true;
+          _controller!.seekTo(seconds: 0, allowSeekAhead: true);
+        }
       }
       if (state == PlayerState.ended && widget.isActive) {
         final onEnded = widget.onEnded;
@@ -136,11 +161,21 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
         }
       } else if (widget.isActive != oldWidget.isActive) {
         if (widget.isActive) {
-          _controller!.playVideo();
+          _warming = false;
           _controller!.unMute();
+          _controller!.playVideo();
         } else {
           _controller!.pauseVideo();
         }
+      } else if (widget.isPreload &&
+          !oldWidget.isPreload &&
+          !widget.isActive &&
+          !_warmed &&
+          !_warming) {
+        // Became the next reel after it was built: warm it now.
+        _warming = true;
+        _controller!.mute();
+        _controller!.playVideo();
       }
     }
   }
@@ -210,14 +245,13 @@ class _PlatformYouTubePlayerState extends State<PlatformYouTubePlayer> {
           opacity: _started ? 0 : 1,
           child: ColoredBox(
             color: Colors.black,
-            child: Image.network(
-              YoutubePlayerController.getThumbnail(
-                videoId: widget.videoId,
-                quality: ThumbnailQuality.high,
-                format: ThumbnailFormat.jpeg,
-              ),
+            // Same URL + cache as the feed's precache, so the poster paints
+            // on the first frame instead of being downloaded again.
+            child: CachedNetworkImage(
+              imageUrl: youTubePosterUrl(widget.videoId),
               fit: widget.coverMode ? BoxFit.cover : BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              fadeInDuration: Duration.zero,
+              errorWidget: (_, __, ___) => const SizedBox.shrink(),
             ),
           ),
         ),

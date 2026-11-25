@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// CRICIT tokens. Source of truth: /DESIGN.md. Keep in sync with admin/src/app/globals.css.
 class CricitColors {

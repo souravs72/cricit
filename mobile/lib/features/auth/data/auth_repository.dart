@@ -112,7 +112,8 @@ class AuthRepository {
     var backendVerified = false;
     if (!const bool.fromEnvironment('FLUTTER_TEST')) {
       try {
-        final dio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 2)));
+        final dio =
+            Dio(BaseOptions(connectTimeout: const Duration(seconds: 2)));
         final res = await dio.post<Map<String, dynamic>>(
           'http://localhost:8000/v1/auth/otp/verify',
           data: {'phone': phone, 'code': code},

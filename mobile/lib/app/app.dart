@@ -1,6 +1,9 @@
 import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:cupertino_ui/cupertino_ui.dart'
+    show GlobalCupertinoLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalWidgetsLocalizations;
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/settings/settings_controller.dart';
@@ -41,14 +44,20 @@ class _CricitAppRoot extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
         scrollBehavior: const CricitScrollBehavior(),
-        routes: {'/': (_) => const SplashScreen(), '/home': (_) => const SplashScreen()},
+        routes: {
+          '/': (_) => const SplashScreen(),
+          '/home': (_) => const SplashScreen(),
+        },
       ),
       error: (e, _) => MaterialApp(
         title: 'CRICIT',
         debugShowCheckedModeBanner: false,
         theme: lightTheme,
         scrollBehavior: const CricitScrollBehavior(),
-        routes: {'/': (_) => const SplashScreen(), '/home': (_) => const SplashScreen()},
+        routes: {
+          '/': (_) => const SplashScreen(),
+          '/home': (_) => const SplashScreen(),
+        },
       ),
       data: (_) {
         final settings = ref.watch(settingsProvider);

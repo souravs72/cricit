@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -106,7 +106,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 Text(
                   'Sent to +91 ${widget.phone}. Enter the 6-digit code below.',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isDark ? CricitColors.inkMutedDark : CricitColors.inkMuted,
+                    color: isDark
+                        ? CricitColors.inkMutedDark
+                        : CricitColors.inkMuted,
                   ),
                 ),
                 const SizedBox(height: CricitSpace.md),
@@ -171,11 +173,17 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                               icon: const Icon(Icons.open_in_new, size: 14),
                               label: const Text(
                                 'View Incoming Message',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                side: const BorderSide(color: CricitColors.outfield),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
+                                side: const BorderSide(
+                                  color: CricitColors.outfield,
+                                ),
                                 foregroundColor: CricitColors.outfield,
                               ),
                             ),
@@ -188,13 +196,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                                 _verify();
                               },
                               style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 backgroundColor: CricitColors.scoreboard,
                                 foregroundColor: CricitColors.ink,
                               ),
                               child: Text(
                                 'Auto-Fill $activeCode',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],

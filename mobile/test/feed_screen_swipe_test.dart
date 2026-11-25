@@ -5,7 +5,7 @@ import 'package:cricit/features/feed/domain/news_card.dart';
 import 'package:cricit/features/feed/presentation/news_card_view.dart';
 import 'package:cricit/features/feed/presentation/video_short_view.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -186,6 +186,50 @@ void main() {
     // Tap Like button
     await tester.tap(find.byIcon(Icons.favorite_border));
     await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
+  });
+
+  testWidgets(
+      'reels keep players for the current and next reel only, and a cancelled '
+      'swipe keeps the reel state', (tester) async {
+    SharedPreferences.setMockInitialValues({'onboarded': true});
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          feedRepositoryProvider.overrideWith(
+            (ref) => _MockFeedRepository(),
+          ),
+        ],
+        child: const CricitApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Video'));
+    await tester.pumpAndSettle();
+
+    // Current + next are built (next is warming); nothing else.
+    final reels = tester
+        .widgetList<VideoShortView>(
+          find.byType(VideoShortView, skipOffstage: false),
+        )
+        .toList();
+    expect(reels.where((r) => r.keepPlayer).length, lessThanOrEqualTo(2));
+    expect(reels.where((r) => r.isActive).length, 1);
+    expect(reels.where((r) => r.isPreload).length, 1);
+
+    // Like the reel, start a swipe, then let it snap back.
+    await tester.tap(find.byIcon(Icons.favorite_border));
+    await tester.pumpAndSettle();
+    final gesture = await tester.startGesture(const Offset(200, 500));
+    await gesture.moveBy(const Offset(0, -60));
+    await tester.pump(const Duration(milliseconds: 16));
+    await gesture.moveBy(const Offset(0, 20));
+    await tester.pump(const Duration(milliseconds: 500));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    // The depth transition must not rebuild the reel (or its player).
     expect(find.byIcon(Icons.favorite), findsOneWidget);
   });
 }
