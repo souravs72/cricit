@@ -557,7 +557,8 @@ class _LanguageToggle extends StatelessWidget {
                       child: AnimatedDefaultTextStyle(
                         duration: const Duration(milliseconds: 220),
                         style: TextStyle(
-                          fontFamily: CricitFonts.body,
+                          fontFamily:
+                              label == 'EN' ? CricitFonts.body : CricitFonts.hindi,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: on
