@@ -23,14 +23,10 @@ export function NewsroomShell({
       <header className="flex flex-col gap-4 border-b border-border/60 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-              {title}
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h1>
             {badge}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground max-w-3xl leading-relaxed">
-            {description}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground max-w-3xl leading-relaxed">{description}</p>
         </div>
         {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </header>
@@ -50,15 +46,7 @@ export function NewsroomShell({
   );
 }
 
-export function EmptyState({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body: string;
-  action?: ReactNode;
-}) {
+export function EmptyState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-card/40 px-6 py-14 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/80 text-muted-foreground mb-4">

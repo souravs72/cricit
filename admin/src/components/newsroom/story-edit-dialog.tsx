@@ -59,11 +59,7 @@ export function StoryEditModal({
         }),
       });
 
-      toast.success(
-        publishNow
-          ? "Story updated & published live to app!"
-          : "Story edits saved successfully",
-      );
+      toast.success(publishNow ? "Story updated & published live to app!" : "Story edits saved successfully");
       onSaved();
       onClose();
     } catch (err) {

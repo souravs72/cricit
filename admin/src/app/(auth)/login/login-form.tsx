@@ -128,7 +128,12 @@ export function LoginForm() {
               {useRecovery ? "Use authenticator app code" : "Use recovery code"}
             </button>
             {useRecovery && (
-              <span className="text-muted-foreground">Demo: <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">a1b2c3-d4e5f6</code></span>
+              <span className="text-muted-foreground">
+                Demo:{" "}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-foreground font-mono">
+                  a1b2c3-d4e5f6
+                </code>
+              </span>
             )}
           </div>
         </div>

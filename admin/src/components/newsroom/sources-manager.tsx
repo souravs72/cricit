@@ -25,14 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatWhen } from "@/lib/format";
 import type { SourceRow } from "@/lib/newsroom";
 import { proxyJson } from "@/lib/proxy";
@@ -44,7 +37,7 @@ type Preview = { title: string; url: string; published_at?: string };
 function YoutubeIcon({ className = "size-4" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
     </svg>
   );
 }
@@ -52,7 +45,7 @@ function YoutubeIcon({ className = "size-4" }: { className?: string }) {
 function TwitterIcon({ className = "size-4" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
 }
@@ -168,7 +161,7 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
         body: "{}",
       });
       toast.success(
-        `Ingested ${row.name}: ${out.inserted} new cards, ${out.merged} merged, ${out.errors} errors.`
+        `Ingested ${row.name}: ${out.inserted} new cards, ${out.merged} merged, ${out.errors} errors.`,
       );
       router.refresh();
     } catch (err) {
@@ -192,7 +185,7 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
         body: "{}",
       });
       toast.success(
-        `Ingestion Complete: Polled ${out.sources_polled} sources → +${out.total_inserted} new cards (+${out.total_merged} merged).`
+        `Ingestion Complete: Polled ${out.sources_polled} sources → +${out.total_inserted} new cards (+${out.total_merged} merged).`,
       );
       router.refresh();
     } catch (err) {
@@ -202,7 +195,7 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
     }
   }
 
-  async function applyPreset(p: typeof PRESETS[number]) {
+  async function applyPreset(p: (typeof PRESETS)[number]) {
     setError(null);
     try {
       const body = sourceCreatePayload({
@@ -233,8 +226,7 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
         adapter: (form.get("adapter") as "rss" | "html" | "sitemap" | "youtube" | "x") ?? "rss",
         feed_url: String(form.get("feed_url") ?? ""),
         default_category:
-          (form.get("default_category") as "international" | "domestic" | "grassroots") ??
-          "international",
+          (form.get("default_category") as "international" | "domestic" | "grassroots") ?? "international",
         trust_level: (form.get("trust_level") as "auto" | "review") ?? "review",
       });
       setBusy("create");
@@ -267,7 +259,9 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm font-medium text-muted-foreground">Active Triggers</p>
-          <p className="mt-1 font-heading text-3xl font-semibold text-outfield">{activeCount} / {rows.length}</p>
+          <p className="mt-1 font-heading text-3xl font-semibold text-outfield">
+            {activeCount} / {rows.length}
+          </p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm font-medium text-muted-foreground">YouTube Channels</p>
@@ -352,7 +346,13 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
         </div>
         <div className="space-y-2">
           <Label htmlFor="name">Source Name</Label>
-          <Input id="name" name="name" required minLength={2} placeholder="e.g. Harsha Bhogle Shorts, Fox Cricket" />
+          <Input
+            id="name"
+            name="name"
+            required
+            minLength={2}
+            placeholder="e.g. Harsha Bhogle Shorts, Fox Cricket"
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="adapter">Adapter Type</Label>
@@ -375,8 +375,8 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
             {selectedAdapter === "youtube"
               ? "YouTube Channel Handle or URL (e.g. @cricbuzz or https://youtube.com/@BCCI/shorts)"
               : selectedAdapter === "x"
-              ? "X / Twitter Handle or Profile URL (e.g. @BCCI or https://x.com/ICC)"
-              : "Feed / Listing URL"}
+                ? "X / Twitter Handle or Profile URL (e.g. @BCCI or https://x.com/ICC)"
+                : "Feed / Listing URL"}
           </Label>
           <Input
             id="feed_url"
@@ -386,8 +386,8 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
               selectedAdapter === "youtube"
                 ? "@cricbuzz"
                 : selectedAdapter === "x"
-                ? "BCCI"
-                : "https://www.espncricinfo.com/rss/content/story/feeds/0.xml"
+                  ? "BCCI"
+                  : "https://www.espncricinfo.com/rss/content/story/feeds/0.xml"
             }
           />
         </div>
@@ -422,7 +422,11 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
           </p>
         ) : null}
         <div className="md:col-span-2">
-          <Button type="submit" disabled={busy === "create"} className="bg-outfield hover:bg-outfield/90 text-white">
+          <Button
+            type="submit"
+            disabled={busy === "create"}
+            className="bg-outfield hover:bg-outfield/90 text-white"
+          >
             <PlusCircle className="mr-2 size-4" /> Save Trigger
           </Button>
         </div>
@@ -540,7 +544,9 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
                         <Badge
                           variant={row.trust_level === "auto" ? "default" : "secondary"}
                           className={`text-xs ${
-                            row.trust_level === "auto" ? "bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20" : ""
+                            row.trust_level === "auto"
+                              ? "bg-emerald-600/15 text-emerald-700 hover:bg-emerald-600/20"
+                              : ""
                           }`}
                         >
                           {row.trust_level === "auto" ? "Auto-post" : "Review"}
@@ -559,7 +565,9 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
                           </div>
                         )}
                         {row.last_error && (
-                          <p className="max-w-xs truncate text-[11px] text-destructive/80">{row.last_error}</p>
+                          <p className="max-w-xs truncate text-[11px] text-destructive/80">
+                            {row.last_error}
+                          </p>
                         )}
                       </TableCell>
                       <TableCell className="tabular-nums text-xs text-muted-foreground">
@@ -591,7 +599,9 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
                             disabled={busy === `test-${row.id}`}
                             onClick={() => testFetch(row)}
                           >
-                            <RefreshCw className={`mr-1 size-3 ${busy === `test-${row.id}` ? "animate-spin" : ""}`} />
+                            <RefreshCw
+                              className={`mr-1 size-3 ${busy === `test-${row.id}` ? "animate-spin" : ""}`}
+                            />
                             Test Fetch
                           </Button>
                           <Button
@@ -601,7 +611,9 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
                             onClick={() => ingestNow(row)}
                             title="Fetch new content and generate AI card summaries immediately"
                           >
-                            <Zap className={`mr-1 size-3 ${busy === `ingest-${row.id}` ? "animate-spin" : ""}`} />
+                            <Zap
+                              className={`mr-1 size-3 ${busy === `ingest-${row.id}` ? "animate-spin" : ""}`}
+                            />
                             Ingest Now
                           </Button>
                         </div>
@@ -636,10 +648,17 @@ export function SourcesManager({ rows }: { rows: SourceRow[] }) {
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {preview.items.slice(0, 6).map((item, idx) => (
-                <div key={item.url + idx} className="flex flex-col justify-between rounded-lg border bg-background p-3">
+                <div
+                  key={item.url + idx}
+                  className="flex flex-col justify-between rounded-lg border bg-background p-3"
+                >
                   <div>
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {item.url.includes("youtube.com") ? "YouTube Short" : item.url.includes("x.com") ? "X Tweet" : "News Article"}
+                      {item.url.includes("youtube.com")
+                        ? "YouTube Short"
+                        : item.url.includes("x.com")
+                          ? "X Tweet"
+                          : "News Article"}
                     </span>
                     <p className="mt-1 line-clamp-2 text-sm font-medium">{item.title}</p>
                   </div>

@@ -95,7 +95,8 @@ export function ReviewQueue({ rows }: { rows: PostRow[] }) {
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
           <p className="text-xs text-muted-foreground font-medium">
-            <span className="font-semibold text-foreground">{rows.length}</span> card{rows.length === 1 ? "" : "s"} awaiting editorial sign-off.
+            <span className="font-semibold text-foreground">{rows.length}</span> card
+            {rows.length === 1 ? "" : "s"} awaiting editorial sign-off.
           </p>
           <div className="hidden items-center gap-1.5 pl-4 sm:flex text-xs text-muted-foreground/80">
             <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">j/k</span> navigate
@@ -207,9 +208,7 @@ export function ReviewQueue({ rows }: { rows: PostRow[] }) {
                   </div>
 
                   {/* Headline */}
-                  <h3 className="text-base font-bold leading-snug text-foreground">
-                    {row.headline}
-                  </h3>
+                  <h3 className="text-base font-bold leading-snug text-foreground">{row.headline}</h3>
 
                   {/* Duplicate warning */}
                   {row.duplicate_headline && (

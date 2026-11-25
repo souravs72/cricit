@@ -87,9 +87,7 @@ export default async function OverviewPage() {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">
-              {cardsToday}
-            </span>
+            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">{cardsToday}</span>
             <span className="text-[10px] font-medium text-emerald-600">Autonomous</span>
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground truncate">Synthesized & published</p>
@@ -104,9 +102,7 @@ export default async function OverviewPage() {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">
-              {inReview}
-            </span>
+            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">{inReview}</span>
             {inReview > 0 && (
               <span className="text-[10px] font-medium text-amber-600 animate-pulse">Pending triage</span>
             )}
@@ -123,9 +119,7 @@ export default async function OverviewPage() {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">
-              {readers}
-            </span>
+            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">{readers}</span>
             <span className="text-[10px] font-medium text-sky-600">Card views</span>
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground truncate">Mobile deck impressions</p>
@@ -140,9 +134,7 @@ export default async function OverviewPage() {
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">
-              {aiCost}
-            </span>
+            <span className="font-heading text-2xl font-bold tabular-nums text-foreground">{aiCost}</span>
             <span className="text-[10px] font-medium text-purple-600">Cost optimized</span>
           </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground truncate">Claude 3.5 / OpenAI tokens</p>
@@ -220,10 +212,7 @@ export default async function OverviewPage() {
               <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
                 Source Feed Pulse
               </h2>
-              <Link
-                href="/sources"
-                className="text-xs font-semibold text-primary hover:underline"
-              >
+              <Link href="/sources" className="text-xs font-semibold text-primary hover:underline">
                 Manage feeds →
               </Link>
             </div>
@@ -265,7 +254,8 @@ export default async function OverviewPage() {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Polling RSS feeds & YouTube every 15m. Articles undergo automatic in-memory readability extraction, deduplication, and bilingual synthesis.
+              Polling RSS feeds & YouTube every 15m. Articles undergo automatic in-memory readability
+              extraction, deduplication, and bilingual synthesis.
             </p>
             <div className="pt-2 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground">
               <span>FastAPI Backend · Postgres 16</span>

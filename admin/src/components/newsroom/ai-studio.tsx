@@ -156,7 +156,10 @@ export function AiStudioManager({ drafts }: { drafts: PostRow[] }) {
           <span>What is AI Studio & How does it work?</span>
         </div>
         <p className="text-muted-foreground leading-relaxed">
-          AI Studio is your <strong>cricket newsroom copilot</strong>. Whenever you want to create a story — whether from rough match notes, an article link, or a tweet — the AI curates your draft into a punchy headline, an Inshorts-style 60-word card, smart cricket tags, and instant Hindi translation. You can review and tweak it before publishing live to the mobile app.
+          AI Studio is your <strong>cricket newsroom copilot</strong>. Whenever you want to create a story —
+          whether from rough match notes, an article link, or a tweet — the AI curates your draft into a
+          punchy headline, an Inshorts-style 60-word card, smart cricket tags, and instant Hindi translation.
+          You can review and tweak it before publishing live to the mobile app.
         </p>
       </div>
 
